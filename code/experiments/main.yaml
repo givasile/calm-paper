@@ -1,0 +1,9 @@
+# Tables 1-2, the interaction tables and the complexity counts:
+# the black box, the GAM and CALM on the 25 benchmark datasets.
+datasets: benchmark
+resampling: {kind: kfold, n: 5}
+arms:
+  xgb:  {method: xgb,  frozen: "XGB{Model}"}
+  ebm:  {method: ebm,  frozen: "NoInteractionsEBM{Model}"}
+  calm: {method: calm, frozen: "CALM_N"}
+frozen: "results_systematic_{task}_folds.csv"

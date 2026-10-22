@@ -1,0 +1,1 @@
+{"kind": "ebm_terms", "dataset": "CCPP", "fold": 4, "n_features": 4, "n_terms": 8, "pairs": [["AT", "V"], ["AT", "RH"], ["AP", "V"], ["RH", "V"]], "pair_importances": [0.057761009526026946, 0.035812591909515704, 0.06822717770865301, 0.05412076764196524]}

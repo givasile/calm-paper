@@ -1,0 +1,1 @@
+{"kind": "ebm_terms", "dataset": "PMLB_PHONEME", "fold": 9, "n_features": 5, "n_terms": 10, "pairs": [["Aa", "Dcl"], ["Aa", "Iy"], ["Ao", "Dcl"], ["Ao", "Iy"], ["Ao", "Sh"]], "pair_importances": [1.663140560503492, 0.7847899210273527, 0.8362810002582771, 0.807904341513385, 0.7974771523401758]}

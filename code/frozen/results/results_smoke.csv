@@ -1,0 +1,5 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,min_heterogeneity_decrease_pcg,max_depth,r2,mae,rmse,runtime_sec,num_interactions
+BikeSharing,regression,XGBRegressor,42,0.2,,,,,,,,,0.9534366822510838,24.597999307173716,39.15426038731938,0.5421185493469238,
+BikeSharing,regression,CALMRegressor,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,0.8940986508912445,40.7339448963975,59.048356585982845,34.253453731536865,8.0
+BikeSharing,regression,CALMRegressor,42,0.2,heterogeneity,pdp,ebm,xgb,blackbox,0.01,0.10557280900008414,2.0,0.8943409065107611,40.836891927453976,58.980779607669824,30.54715061187744,12.0
+BikeSharing,regression,CALMRegressor,42,0.2,explained_variance,pdp,surrogate,xgb,blackbox,0.01,,,0.7965405579914961,56.4641744505816,81.84572369326132,13.57922649383545,8.0

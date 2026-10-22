@@ -1,0 +1,6 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,0,0.770390059481501,2.506031729248368,3.391626676056046,4.6342926025390625,2
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,1,0.766820674921024,2.255648701456376,3.161630602743646,2.536282777786255,2
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,2,0.7765602505648478,2.4448975119954923,3.348703493547865,4.797047138214111,2
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,3,0.7701498493901963,2.423612684795916,3.3696492335551045,2.1929638385772705,2
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,4,0.7188522382597293,2.647547515587465,3.551177838585388,2.2076289653778076,2

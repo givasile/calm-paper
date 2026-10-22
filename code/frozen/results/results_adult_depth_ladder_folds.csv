@@ -1,0 +1,16 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,accuracy,balanced_accuracy,f1,runtime_sec,num_interactions
+Adult,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,0,0.8707573244886678,0.7961121798734173,0.7131288343558282,160.72520327568054,16
+Adult,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,1,0.8725262576008844,0.7989328316218784,0.7174712080372457,140.0964903831482,10
+Adult,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,2,0.8647722246793454,0.7899701768184666,0.7016345450109783,149.5207850933075,16
+Adult,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,3,0.8709641751437417,0.798873774287704,0.7158509861212564,148.99396419525146,11
+Adult,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,4,0.8663202122954445,0.7970549539268111,0.7098632109431245,146.36660385131836,10
+Adult,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,0,0.8704256495301271,0.7981344615896617,0.7147030185004869,161.7223093509674,22
+Adult,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,1,0.8720840243228303,0.7993864345674226,0.7174603174603175,154.0485954284668,14
+Adult,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,2,0.8677576293675365,0.795695037815364,0.7098495875788452,196.92924737930298,14
+Adult,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,3,0.870079610791685,0.7979865630060707,0.7141814643639017,158.90822172164917,16
+Adult,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,4,0.8663202122954445,0.797503476046427,0.7102803738317757,168.3051323890686,15
+Adult,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,0,0.8681039248203427,0.7952453612648982,0.7098029676477743,143.07764792442322,27
+Adult,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,1,0.8688778330569376,0.7951617674576323,0.71044921875,134.55008602142334,23
+Adult,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,2,0.8685316231755861,0.7963591344160512,0.711197473888754,174.73572897911072,15
+Adult,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,3,0.8687527642636002,0.7965061283892982,0.7115431348724179,147.77980875968933,19
+Adult,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,4,0.8651039363113666,0.7947512944846731,0.7065897065897065,139.1190459728241,17

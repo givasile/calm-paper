@@ -1,0 +1,16 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,accuracy,balanced_accuracy,f1,runtime_sec,num_interactions
+PMLB_PHONEME,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,0,0.8751156336725254,0.8424364543247395,0.7819063004846527,148.47629380226135,8
+PMLB_PHONEME,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,1,0.851063829787234,0.8180380530827291,0.7440381558028617,122.25180268287659,8
+PMLB_PHONEME,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,2,0.8695652173913043,0.8329727319272631,0.7699836867862969,155.26187992095947,8
+PMLB_PHONEME,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,3,0.8529139685476411,0.8233615239414097,0.750392464678179,130.72596168518066,7
+PMLB_PHONEME,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,4,0.8425925925925926,0.8028535872427864,0.7249190938511327,77.6063175201416,8
+PMLB_PHONEME,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,0,0.8723404255319149,0.8413959403438651,0.7788461538461539,153.5783462524414,8
+PMLB_PHONEME,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,1,0.8556891766882516,0.8250016516094935,0.7531645569620253,134.68474578857422,8
+PMLB_PHONEME,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,2,0.8695652173913043,0.8375869159495929,0.7736757624398074,159.23152494430542,8
+PMLB_PHONEME,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,3,0.8575393154486587,0.8284721020137327,0.7578616352201258,133.19435453414917,8
+PMLB_PHONEME,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,4,0.8425925925925926,0.8046975453857634,0.7266881028938906,151.43575358390808,8
+PMLB_PHONEME,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,0,0.8788159111933395,0.8505912761986556,0.7910685805422647,133.4631540775299,8
+PMLB_PHONEME,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,1,0.8658649398704903,0.8386604621203362,0.7716535433070866,160.3539319038391,12
+PMLB_PHONEME,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,2,0.8695652173913043,0.8375869159495929,0.7736757624398074,157.07858610153198,12
+PMLB_PHONEME,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,3,0.8649398704902868,0.8282124516761872,0.762987012987013,156.82971262931824,12
+PMLB_PHONEME,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,4,0.8722222222222222,0.8413410454333095,0.7788461538461539,162.59226417541504,12

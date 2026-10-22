@@ -1,0 +1,2 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,min_heterogeneity_decrease_pcg,max_depth,r2_mean,mae_mean,rmse_mean,runtime_sec_mean,num_interactions_mean,r2_std,mae_std,rmse_std,runtime_sec_std,num_interactions_std
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,0.5562445938233658,0.38672603217853696,0.4928730394116334,32.759565925598146,7.4,0.0614279317460043,0.02655079198088917,0.032562899323806474,25.179040659719572,2.33238075793812

@@ -1,0 +1,27 @@
+Decision trees~\cite{breiman1984cart}, rule lists~\cite{letham2015stroke, angelino2018learningcertifiablyoptimalrule} and prototype-based classifiers~\cite{chen2019looks, bien2012prototype} are typical interpretable-by-design models; among them, GAMs~\cite{hastie1990generalized, wood2017generalized} are popular for their simple global interpretability.
+
+GAMs model the output as $g(\mathbb{E}[y|\mathbf{x}]) = \beta_0 + \sum_{i} f_i(x_i)$, with univariate shape functions $f_i$, intercept $\beta_0$ and link function $g$.
+They differ mainly in how $f_i$ are learned: penalized splines~\cite{wood2017generalized} give smooth curves, boosted bagged shallow trees~\cite{lou2012intelligible, nori2019interpretml} give step functions that follow sharp changes, and neural variants learn one network per feature~\cite{agarwal2021neural}, a set of basis functions shared by all features~\cite{radenovic2022neural}, or a boosted ensemble of extreme learning machines~\cite{KRAUS2024IGANN}.
+
+\gamms~add pairwise terms, $g(\mathbb{E}[y|\mathbf{x}]) = \beta_0 + \sum_{i} f_i(x_i) + \sum_{(i,j)\in\mathcal{I}} f_{ij}(x_i, x_j)$, over a set $\mathcal{I}$ of selected pairs, and differ in how they choose $\mathcal{I}$ and fit the terms.
+GA$^2$M~\cite{lou2013accurate} fits boosted trees and adds pairs greedily, ranked by how much each reduces the residual loss;
+GAMI-Net~\cite{yang2020gami} fits one network per term and considers only pairs with at least one already-selected main effect;
+GRAND-SLAMIN~\cite{ibrahim2023grandslamin} fits soft trees and selects pairs end to end through differentiable gates, optionally under hierarchy constraints;
+and NODE-GA$^2$M~\cite{chang2022node} fits differentiable oblivious trees, each restricted to at most two features.
+
+CALM draws inspiration from \emph{regional effect methods}, post-hoc explainability methods that extend \emph{global effect plots}.
+Global effect plots, such as Partial Dependence Plots (PDP)~\cite{friedman2001greedy}, Accumulated Local Effects (ALE)~\cite{apley2020visualizing} and SHAP Dependence Plots (SHAP-DP)~\cite{lundberg2020local}, explain a black-box model $f$ by decomposing it into $d$ one-dimensional plots, one per feature $x_i$.
+When $f$ contains strong interactions, these plots average heterogeneous local effects into one curve and can mislead, a phenomenon known as aggregation bias~\cite{mehrabi2021survey, herbinger2022REPID, baniecki2024robustness, gkolemis2023rhale}.
+
+Regional effect methods address this by splitting the input space with a tree into subregions where interactions are weak, and drawing each feature's plot separately in every subregion.
+REPID~\cite{herbinger2022REPID} grows one tree per feature, while GADGET~\cite{herbinger2024GADGET}, FD-Tree~\cite{laberge2024fdtree} and GRANITE~\cite{herbinger2026granite} grow one tree shared by several features.
+CALM adopts GADGET's heterogeneity criterion and REPID's per-feature trees to find its regions (Step~1(b), Section~\ref{subsec:training}).
+Per-feature trees let each feature split only on the features it interacts with, whereas a shared tree imposes the same splits on every feature.
+In Figure~\ref{fig:concept-image}, a shared tree would split the humidity, which interacts with no feature, on the working day only because the hour needs it.
+Finally, we clarify that GADGET, REPID and all regional effect methods are not competitors of CALM: they explain a fitted model post hoc, whereas a CALM is itself a predictor.
+
+CALM also relates to model distillation~\cite{hinton2015distilling, tan2018distill} and surrogate models~\cite{guidotti2018survey}, which train an interpretable student to mimic a black-box teacher, locally~\cite{ribeiro2016should} or globally~\cite{guidotti2018survey}.
+However, instead of explaining the teacher, a CALM uses it only to find where interactions are weak, and then fits its curves to the data.
+In a rough analogy, CALM serves as the interpretable-by-design student that replaces the black-box teacher as the final predictor.
+SLIM~\cite{hu2020surrogate} and other model-based trees~\cite{herbinger2023leveraging} fit a simple model in each leaf of a single tree, mainly as surrogates that explain a black box, so all features share one partition.
+Regionally additive models~\cite{gkolemis2023regionally} also build an interpretable model from regional effects, but do not characterize its interpretability or evaluate it systematically.

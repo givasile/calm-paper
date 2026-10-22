@@ -1,0 +1,8 @@
+# Sensitivity to the selection threshold: half and double the default
+# min_r2_gain = 0.01 (the default is `main`).
+datasets: benchmark
+resampling: {kind: kfold, n: 5}
+arms:
+  calm_gain_half:   {method: calm, params: {min_r2_gain: 0.005}, frozen: "CALM_V5_gain005"}
+  calm_gain_double: {method: calm, params: {min_r2_gain: 0.02},  frozen: "CALM_V6_gain02"}
+frozen: "results_systematic_{task}_folds.csv"

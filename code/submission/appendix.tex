@@ -1,0 +1,1133 @@
+\section{Conditionally Additive Local Models (CALMs)}
+\label{app:learning-rams}
+
+In the main paper (Algorithm~\ref{alg:calm-training}), we summarize the procedure of fitting a Conditionally Additive Local Model (CALM):
+\[
+f_{\texttt{CALM}}(\xb) = g^{-1} \left (  \beta_0 + \sum_{i=1}^d f_i^{r_i(\xbi)}(x_i) \right ),
+\]
+
+as defined in Eq.\eqref{eq:CALM}, to a dataset $\mathcal{D} = \{\xb^{(i)}, y^{(i)}\}_{i=1}^N$ in three main steps: (i) fit a high‑capacity reference model \(f_{\mathtt{ref}}\) on $\mathcal{D}$, (ii) fit a partition tree $T_i$  using an interaction-related heterogeneity measure $H_i$ for each feature \(i = 1, \ldots,d\), and (iii) estimate region‑specific effects \( \{ f_i^{(r)} \}_{r=1}^{R_i} \) for each feature \(i = 1, \ldots,d\).
+We provide additional details for each step below.
+
+\subsection{Step 1: Fit a high‑capacity reference model \(f_{\mathtt{ref}}\) on $\mathcal{D}$}
+
+The initial stage involves fitting a high-capacity predictive model, denoted as \(f_{\mathtt{ref}}: \mathbb{R}^d \rightarrow \mathbb{R}\) to dataset \(\mathcal{D} = \{(\mathbf{x}^{(i)}, y^{(i)})\}_{i=1}^N\). 
+The reference model serves as an accurate functional approximation of the underlying relationship between the input features \(\mathbf{x}\) and the response variable \(y\).
+The choice of \(f_{\mathtt{ref}}\) is flexible; any sufficiently expressive and accurate model can be employed. Commonly used options include gradient-boosted decision trees (e.g., XGBoost, which we adopt by default), deep neural networks, random forests, or more recent architectures such as TabPFN~\cite{hollmann2022tabpfn}. 
+
+\subsection{Step 2: Fit a partition tree $T_i$ using heterogeneity $H_i$ for each feature}
+
+We first define a suitable heterogeneity measure $H_i$ (see Section~\ref{subsec:heterogeneity-measures}), and then explore the relationship between heterogeneity and CALM's error in approximating $f_{\texttt{ref}}$. Motivated by these results, we fit a partition tree \(T_i\) for each feature \(i\) (see Section~\ref{subsec:partition-tree}). 
+Finally, if the user specifies a constraint \(K\) on the maximum number of interactions, we apply a pruning step to retain the \(K\) most significant interactions (see Section~\ref{subsec:pruning}).
+
+\subsubsection{Heterogeneity Measures $H_i$}
+\label{subsec:heterogeneity-measures}
+
+Interaction-related heterogeneity $H_i$ quantifies the extent to which a feature $x_i$ interacts with all other features \(x_j\), where \(j \in \{1, \ldots, d\} \setminus \{i\}\).
+The computation of $H_i$ is based on the variance of local effects: $h(x_i , \xbi^{(j)})$.
+
+\paragraph{Local Effect.}
+We define $h(x_i , \xbi^{(j)})$ as the local effect of feature $x_i$ when applied to the $j$-th background observation $\xb_{-i}^{(j)}$.
+That is, if we take the $j$-th observation and substitute the $i$-th feature with the value $x_i$, the resulting change (local effect) in the model output is captured by $h(x_i , \xbi^{(j)})$.
+The computation of $h(\cdot)$ relies on two components: (i) a reference teacher model $f_{\mathtt{ref}}$ and (ii) a background dataset $\{\mathbf{x}^{(i)}\}_{i=1}^N$ containing input features only. 
+The specific form of $h(\cdot)$ depends on the chosen feature effect method.
+Several methods can be used, including Partial Dependence Plot (PDP), SHAP-Dependence Plot (SHAP-DP) and Robust and Heterogeneity-aware ALE (RHALE).
+
+Below, we provide the definition of $h$ in the case of PDP, which we adopt as the default method in our experiments.
+Let \(f_{\mathtt{ref}}\) be the reference model and \(\{\mathbf{x}^{(j)}\}_{j=1}^N\) the background dataset. 
+The PDP-based heterogeneity is defined as:
+
+\begin{equation}
+h\bigl(x_i,\,\mathbf{x}_{-i}^{(j)}\bigr) = 
+f_{\mathtt{ref}}\bigl(x_i,\,\mathbf{x}_{-i}^{(j)}\bigr)
+- c(\mathbf{x}_{-i})
+\end{equation}
+
+where $c(\mathbf{x}^{(j)}_{-i})= \mathbb{E}_{X_i} \left [ f_{\mathtt{ref}}\bigl(X_i,\,\mathbf{x}_{-i}^{(j)}\bigr) \right ]$ is a centering constant.
+For details on alternative approaches, we refer the reader to~\cite{herbinger2024GADGET, herbinger2022REPID}.
+
+\paragraph{Point-wise heterogeneity $H_i(x_i)$ and Heterogeneity $H_i$.}
+
+The pointwise heterogeneity is then defined as 
+\begin{equation}
+H_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}}\left[\left(h(x_i, \mathbf{X}_{-i}) - \mu_i(x_i)\right)^2\right]
+\end{equation}
+where $\mu_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}}[h(x_i, \mathbf{X}_{-i})]$ is the mean local effect. Inside a region, this heterogeneity takes the form of Eq. \eqref{eq:pointwiseh}. Feature-level heterogeneity is 
+\begin{equation}
+H_i = \mathbb{E}_{X_i}\left[H_i(X_i)\right] = \mathbb{E}_{X_i}\left[\text{Var}_{\mathbf{X}_{-i}}[h(X_i, \mathbf{X}_{-i})]\right]
+\end{equation}
+Inside a region this definition takes the form of Eq. \eqref{eq:heterogeneity}.
+
+A more formal motivation for the use of heterogeneity in CALM comes from the proposition of the following section.
+
+\subsubsection{Heterogeneity and CALM approximation error}
+
+\begin{proposition}
+    Let $\mathcal{E} = \mathbb{E}_{\mathbf{X}}\left[\left(f_{\texttt{ref}}(\mathbf{X}) - f_{\texttt{CALM}}(\mathbf{X})\right)^2\right]$ be the mean squared error of the CALM approximation of $f_{\texttt{ref}}$. Assume that $f_{\texttt{ref}}: \mathcal{X} \to \mathbb{R}$ admits a multivariate regionally additive approximation
+\begin{equation*}
+f_{\texttt{ref}}(\mathbf{x}) \approx \beta_0 + \sum_{i = 1}^dh_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x})
+\end{equation*}
+such that each $h_i^{r_i(\mathbf{x}_{-i})}$ captures the contribution of the $i$-th feature to the function's output (including interactions). Also, assume that there is no error in fitting of the univariate CALM shape functions. For clarity of exposition, the proof treats this approximation as an exact equality; the bound \eqref{eq:error_bound} holds up to the residual approximation variance. Then,
+\begin{equation}
+\min_{f_{\texttt{CALM}}} \mathcal{E} \leq d\sum_{i=1}^{d}\left(\sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}H^{\mathcal{R}_i^{(r)}}_i\right)
+\label{eq:error_bound}
+\end{equation}
+where region $\mathcal{R}_i^{(r)}$ is the $r$-th region of the $i$-th feature, $P_{\mathcal{R}_i^{(r)}}$ is the probability mass of the region in the data and $H^{\mathcal{R}_i^{(r)}}_i$ is the heterogeneity of $h_i^{\mathcal{R}_i^{(r)}}(\mathbf{x})$.
+\label{prop:step2}
+\end{proposition}
+
+\begin{proof}
+For the approximation error we have
+\begin{align*}
+\mathcal{E} &= \mathbb{E}_{\mathbf{X}}\left[\left(f_{\texttt{ref}}(\mathbf{X}) - f_{\texttt{CALM}}(\mathbf{X})\right)^2\right] = \mathbb{E}_{\mathbf{X}}\left[\left(\left(\beta_0+ \sum_{i = 1}^dh_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x})\right) - \left(\beta_0 + \sum_{i=1}^{d}f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)\right)^2\right]\nonumber \\
+&=\mathbb{E}_{\mathbf{X}}\left[\left(\sum_{i = 1}^d\left(h_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x}) - f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)\right)^2\right]
+\leq d\sum_{i=1} ^{d}\mathbb{E}_{\mathbf{X}}\left[\left(h_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x}) - f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)^2\right]
+\end{align*}
+where the last step results from the Jensen's inequality. We therefore have
+\begin{equation}
+\mathcal{E} \leq d\sum_{i=1}^{d}\mathcal{E}^{r_i(\mathbf{x}_{-i})}_i
+ \label{eq:error_approx}
+\end{equation}
+Next, we show that the minimum error achieved for each region is equal to the heterogeneity of the local effects. For any measurable function $g_i(x_i)$ and region $\mathcal{R}$, decompose, using $\mu^{\mathcal{R}}_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[h^{\mathcal{R}}_i(x_i, \mathbf{X}_{-i})\right]$:
+\begin{equation*}
+h_i(X_i, \mathbf{X}_{-i}) - g_i(X_i) = \left(h_i(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right) + \left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)
+\end{equation*}
+
+Taking expectations inside $\mathcal{R}$ and squaring:
+\begin{align*}
+&\mathbb{E}_{X_i, \mathbf{X}_{-i} \mid \mathbf{X}_{-i}\in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - g_i(X_i)\right)^2\right] \\
+&= \mathbb{E}_{X_i, \mathbf{X}_{-i} \mid \mathbf{X}_{-i}\in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right] \\
+&\quad + \mathbb{E}_{X_i}\left[\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)^2\right] \\
+&\quad + 2\mathbb{E}_{X_i}\left[\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right]\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)\right]
+\end{align*}
+
+The cross-term equals zero because:
+\begin{equation*}
+\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[h_i^{\mathcal{R}}(x_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(x_i)\right] = \mu^{\mathcal{R}}_i(x_i) - \mu^{\mathcal{R}}_i(x_i) = 0
+\end{equation*}
+by definition of $\mu^{\mathcal{R}}_i$. Therefore:
+\begin{equation*}
+\mathbb{E}_{X_i, \mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - g_i(X_i)\right)^2\right] = \mathcal{E}^{\mathcal{R}}_i + \mathbb{E}_{X_i}\left[\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)^2\right] \geq \mathcal{E}^{\mathcal{R}}_i
+\end{equation*}
+with equality if and only if $g_i = \mu^{\mathcal{R}}_i$ almost surely. This indicates that within each region, $\mu_i^{\mathcal{R}}$ minimizes the approximation error.
+
+Moreover, from the definition of pointwise heterogeneity:
+\begin{equation*}
+H^{\mathcal{R}}_i(x_i) := \mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(x_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(x_i)\right)^2\right]
+\end{equation*}
+
+Taking the expectation over $X_i$:
+\begin{equation*}
+H^{\mathcal{R}}_i = \mathbb{E}_{X_i}\left[H^{\mathcal{R}}_i(X_i)\right] = \mathbb{E}_{X_i}\left[\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right]\right]
+\end{equation*}
+
+which gives
+\begin{equation*}
+H^{\mathcal{R}}_i= \mathbb{E}_{X_i, \mathbf{X}_{-i}|\mathbf{X}_{-i} \in \mathcal{R}}\left[\left(h_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right] = \min\mathcal{E}_i^{\mathcal{R}}
+\end{equation*}
+i.e., heterogeneity is the minimum approximation error.
+
+Since heterogeneity minimizes the error for each region we can estimate the feature-level error across regions as
+\begin{equation*}
+\min{\mathcal{E}_i} = \sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}H^{\mathcal{R}_i^{(r)}}_i
+\end{equation*}
+where $P_{\mathcal{R}_i^{(r)}}$ is the probability mass of region $\mathcal{R}_i^{(r)}$.
+
+Using this result with Eq. \eqref{eq:error_approx}, we have
+
+\begin{equation*}
+\min_{f_{\texttt{CALM}}} \mathcal{E} \leq d\sum_{i=1}^{d}\left(\sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}H^{\mathcal{R}_i^{(r)}}_i\right)
+\end{equation*}
+
+\end{proof}
+
+\begin{remark}
+The switch from the conditional expectation $\mathbb{E}_{X_i \mid \mathbf{X}_{-i} \in \mathcal{R}}$ to the marginal $\mathbb{E}_{X_i}$ in the second term of the decomposition above implicitly assumes $X_i \perp \mathbf{X}_{-i} \mid \mathbf{X}_{-i} \in \mathcal{R}$ within each region. This is the standard assumption underlying PDP-style decompositions and is shared by all feature-effect methods that use the marginal distribution of $X_i$.
+\end{remark}
+
+This result links heterogeneity with the estimation error of the local effect inside a region and motivates the CALM approach for region splitting. The initial assumption about the additive approximation of $f_{\texttt{ref}}$ is a common approach followed by feature effect methods (where the effect of each feature is computed independently). Moreover, the selected local effect function and heterogeneity are solely used for identifying the splitting regions and not as estimators of $f_{\texttt{ref}}$. Using this result, and especially Eq. \eqref{eq:error_bound}, the following two sections present the CALM approach for using heterogeneity to define a partition for each feature. 
+
+\subsubsection{Heterogeneity estimation}
+
+For heterogeneity estimation, denote with $\mathcal{I} \subseteq \{1, \ldots, N\} $ the index set of active background instances considered in the heterogeneity calculation i.e., those that reside in region $\mathcal{R}^{(r_i(\mathbf{x}_{-i}))}_i$ of the $i$-th instance.
+Then, the point-wise heterogeneity at feature value $x_i$ over $\mathcal{I}$ can be estimated by
+
+\begin{equation}\label{eq:point-wise-heterogeneity}
+\hat{H}_i^{\mathcal{I}}(x_i) = \frac{1}{|\mathcal{I}|}\sum_{j \in \mathcal{I}} \left ( h(x_i , \xbi^{(j)}) - \mu(x_i) \right )^2 \text{, where } \mu(x_i)=\frac{1}{|\mathcal{I}|} \sum_{j \in \mathcal{I}} h(x_i , \xbi^{(j)})
+\end{equation}
+
+Eq.\eqref{eq:point-wise-heterogeneity} quantifies the strength of the interactions of the $i$-th feature, at position $x_i$, as 
+the variance of the local effects at $x_i$.
+To obtain a global measure of these interactions, we average the pointwise heterogeneity over a grid of $M$ values $\{ {\tilde{x}_i^{(m)}} \}_{m=1}^M$ sampled from the domain of $x_i$:
+\begin{equation}
+\label{eq:heter-definition}
+\hat{H}_i^{\mathcal{I}} = \frac{1}{M} \sum_{m=1}^M H_i^{\mathcal{I}}(\tilde{x}_i^{(m)}).
+\end{equation}
+
+\subsubsection{Computing the partition tree $T_i$ for each feature.}
+\label{subsec:partition-tree}
+
+\begin{algorithm}[tb]
+\caption{Fitting a Partition Tree $T_i$ for Feature $x_i$}
+\label{alg:fit-tree}
+\begin{algorithmic}[1]
+   \STATE {\bfseries Input:} $f_{\text{ref}}$, $\mathcal{D} = \{(\mathbf{x}^{(k)}, y^{(k)})\}_{k=1}^N$; {\bfseries Parameters:} max depth $d_{\max}$, threshold $\epsilon$, grid size $M=20$
+   \STATE {\bfseries Output:} Binary tree $T_i$
+   \STATE
+   \STATE {\bfseries function} \textsc{BuildTree}(node $\nu$, depth $\ell$, active indices $\mathcal{I}$)
+   \IF{$\ell = d_{\max}$}
+      \STATE \textbf{return} $\nu$ \COMMENT{Stop splitting}
+   \ENDIF
+   \STATE Compute $H_i^{\mathcal{I}}$ using Eq.\eqref{eq:heter-definition}
+   \STATE Initialize: $\Delta H_{\max} \leftarrow 0$
+   \FOR{each feature $j \neq i$}
+      \STATE Determine candidate thresholds $\mathcal{T}_j$ \COMMENT{Default: Unique values if $x_j$ categorical, else $M$-grid (default: $M=20$)}
+      \FOR{each $\tau \in \mathcal{T}_j$}
+        \IF{$x_j$ is numerical}
+            \STATE $\mathcal{I}_L \leftarrow \{k \in \mathcal{I} : x_j^{(k)} \leq \tau\}$, $\mathcal{I}_R \leftarrow \mathcal{I} \setminus \mathcal{I}_L$
+        \ELSE[$x_j$ is categorical]
+            \STATE $\mathcal{I}_L \leftarrow \{k \in \mathcal{I} : x_j^{(k)} = \tau\}$, $\mathcal{I}_R \leftarrow \mathcal{I} \setminus \mathcal{I}_L$
+        \ENDIF
+         \STATE Compute $\Delta H_i$ using Eq.~\eqref{eq:heter-drop}
+         \IF{$\Delta H_i > \Delta H_{\max}$}
+            \STATE $\Delta H_{\max} \leftarrow \Delta H_i$, Store $(j, \tau) $ as optimal split
+         \ENDIF
+      \ENDFOR
+   \ENDFOR
+   \IF{$\Delta H_{\max} > \epsilon$}
+      \STATE Split node $\nu$ into $\nu_L, \nu_R$ using optimal $(j, \tau)$
+      \STATE $\nu_L \leftarrow$ \textsc{BuildTree}($\nu_L, \ell + 1, \mathcal{I}_L$)
+      \STATE $\nu_R \leftarrow$ \textsc{BuildTree}($\nu_R, \ell + 1, \mathcal{I}_R$)
+   \ENDIF
+   \STATE \textbf{return} $\nu$
+   \STATE {\bfseries end function}
+\end{algorithmic}
+\end{algorithm}
+
+For each feature \(x_i\), we construct a binary tree \(T_i\) of maximum depth \(d_{\max}\).
+At each internal node of the tree, we evaluate candidate binary splits based on all features \(x_j\) for \(j \in \{1, \ldots, d\} \setminus \{i\}\).
+For each candidate splitting feature \(x_j\), we consider a fixed number \(T\) of candidate threshold values \(\tau\).
+These candidate thresholds are selected as \(T\) equally spaced values over the range of \(x_j\) in the training data, i.e., \([\min_k x_j^{(k)}, \max_k x_j^{(k)}]\), where \(x_j^{(k)}\) denotes the value of feature \(x_j\) for the \(k\)-th training instance.  
+Alternatively, users may choose to evaluate all unique observed values of $x_j$, i.e., \(\{x_j^{(k)}\}_{k=1}^N\).
+
+To determine the best split at each node, we compute the heterogeneity drop, which quantifies the decrease in interaction-related heterogeneity of the target feature $x_i$ after performing the split. Specifically, for a candidate split, we partition the current set of instances $\mathcal{I}$ into left and right subsets $\mathcal{I}_L$ and $\mathcal{I}_R$,
+based on whether the splitting feature $x_j$ falls below or above the threshold $\tau$. \
+The heterogeneity drop is defined as:
+
+\begin{equation}
+\label{eq:heter-drop}
+\Delta H_i^ = \frac{H_i^{\mathcal{I}} - \left ( \frac{|\mathcal{I}_L|}{|\mathcal{I}|}H_i^{\mathcal{I}_L} + \frac{|\mathcal{I}_R|}{|\mathcal{I}|}H_i^{\mathcal{I}_R}  \right )}{H_i^{\mathcal{I}}}
+\end{equation}
+
+where \(H_i^{\mathcal{I}}\) denotes the interaction-related heterogeneity of feature \(x_i\) over the current set of instances \(\mathcal{I}\); \(\mathcal{I}_L\) and \(\mathcal{I}_R\) are the subsets of \(\mathcal{I}\) resulting from the candidate split; \(H_i^{\mathcal{I}_L}\) and \(H_i^{\mathcal{I}_R}\) are the heterogeneities of \(x_i\) computed on the left and right subsets, respectively; and \(|\mathcal{I}_L| / |\mathcal{I}|\) and \(|\mathcal{I}_R| / |\mathcal{I}|\) are the proportions of instances in each subset, which serve as weights in the weighted average.
+
+This normalized metric enhances interpretability by allowing users to define a meaningful threshold, $\epsilon$, for split acceptance. For instance, a user may require a candidate split to achieve a minimum heterogeneity reduction of $\epsilon = 0.2$ (representing a $20\%$ drop) to be considered significant. In our experimental setup, we utilize a default threshold of $\epsilon = 0.2$.
+
+The procedure for fitting the tree $T_i$ is given in Algorithm \ref{alg:fit-tree}.
+
+\subsubsection{Prune trees to keep top $K$ interactions}
+\label{subsec:pruning}
+
+If the user sets an upper threshold $K$ on the number of interactions, we want to select the $K$ most important splits.
+Given the trees \(T_i\) for $i=1, \ldots, d$, we denote by \(\Delta H_i^\nu\) the heterogeneity reduction associated with node \(\nu\) in tree \(T_i\). We collect all such splits \(\Delta H_i^\nu\) across all features \(i\) and nodes \(\nu\), and then sort them in descending order.
+From this ordered list, we select the top \(K\) nodes that correspond to the largest heterogeneity decreases, while ensuring that no child node is retained without its parent node also being included. Based on this selection, we prune each tree \(T_i\) by removing nodes outside the retained set, thereby preserving only the most significant interactions.
+
+\subsection{Step 3: Estimating the region‑specific effects $\{f_i{(r)}\}_{r=1}^{R_i}$ for each feature.}
+
+The original gradient boosting procedure for fitting a standard, global GAM, \( f_{\texttt{GAM}}(\xb) =  g^{-1} \left ( \beta_0 + \sum_{i} f_i(x_i) \right ) \), follows the round-robin approach of \cite{friedman2001greedy}.  At each boosting iteration, one univariate shape function \(f_i\) is updated by fitting to the current residuals over the entire dataset, thereby greedily reducing the overall loss. 
+The procedure as describe by ~\cite{lou2012intelligible} is summarized in Algorithm ~\ref{alg:gb-gam}.
+
+\begin{algorithm}[tb]
+\caption{Gradient Boosting for GAM}
+\label{alg:gb-gam}
+\begin{algorithmic}[1]
+   \STATE Initialize $f_i \leftarrow 0$ for all $i = 1, \dots, d$
+   \FOR{$m = 1$ {\bfseries to} $M$}
+      \FOR{$i = 1$ {\bfseries to} $d$}
+         \STATE $\mathcal{E} \leftarrow \{(x^{(j)}_i, y^{(j)} - f_{\text{GAM}}(\mathbf{x}^{(j)})\}_{j=1}^N$ \COMMENT{Compute partial residuals}
+         \STATE Learn shaping function $S : x_i \rightarrow \mathbb{R}$ using $\mathcal{E}$ \COMMENT{Fit shape function}
+         \STATE $f_i \leftarrow f_i + \eta S$ \COMMENT{Update with learning rate $\eta$}
+      \ENDFOR
+   \ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+To fit a CALM: $f_{\texttt{CALM}}(\xb) = g^{-1} \left (  \beta_0 + \sum_{i=1}^d f_i^{r_i(\xbi)}(x_i) \right )$ we customize the standard gradient boosting to accommodate for region-specific effects, i.e., we adapt this scheme so that each shape function \(f_i^{(r)}\) is trained only on the subset of instances that lie within its assigned subregion \(\mathcal{R}_i^{(r)}\).  This preserves the additive, boosting framework while enforcing that each \(f_i^{(r)}\) captures only the behavior of \(x_i\) within its corresponding region.
+The procedure is summarized in Algorithm ~\ref{alg:gb-calm}.
+
+\begin{algorithm}[tb]
+\caption{Gradient Boosting for CALM}
+\label{alg:gb-calm}
+\begin{algorithmic}[1]
+   \STATE Initialize $\beta_0 \leftarrow \frac{1}{N}\sum_{j=1}^N y^{(j)}$; $f_i^{(r)} \leftarrow 0$ for all $i = 1, \dots, d$ and $r = 1, \dots, R_i$
+   \FOR{$m = 1$ {\bfseries to} $M$}
+      \FOR{$i = 1$ {\bfseries to} $d$}
+         \FOR{$r = 1$ {\bfseries to} $R_i$}
+            \STATE $\mathcal{E} \leftarrow \{(x^{(j)}_i, y^{(j)} - f_{\text{CALM}}(\mathbf{x}^{(j)})) : \mathbf{x}^{(j)}_{-i} \in \mathcal{R}_i^{(r)}\}$
+            \COMMENT{Filter by region $\mathcal{R}_i^{(r)}$}
+            \STATE Learn shaping function $S : x_i \rightarrow \mathbb{R}$ using $\mathcal{E}$
+            \STATE $f_i^{(r)} \leftarrow f_i^{(r)} + \eta S$ \COMMENT{Update regional shape function}
+         \ENDFOR
+      \ENDFOR
+      \STATE \textbf{Center:} for all $i, r$, let $c_i^{(r)} \leftarrow \frac{1}{|\mathcal{R}_i^{(r)}|}\sum_{\mathbf{x}^{(j)} \in \mathcal{R}_i^{(r)}} f_i^{(r)}(x_i^{(j)})$; set $f_i^{(r)} \leftarrow f_i^{(r)} - c_i^{(r)}$ and $\beta_0 \leftarrow \beta_0 + \sum_i \sum_r \mathbb{P}(\mathcal{R}_i^{(r)})\, c_i^{(r)}$ \COMMENT{Enforce identifiability}
+   \ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Theoretical analysis of Step~3}
+\label{app:step3-theory}
+
+This section formalizes the claims made in Step~3 of the main text.
+We show that, under squared loss and fixed region-selection trees, (i) the
+population target of Step~3 is an $L_2(P_{\mathbf{X}})$-best approximation of the true regression
+function onto the CALM function class, and (ii) an idealized exact version of the
+algorithm converges to the corresponding empirical risk minimizer.
+
+Consider the CALM score function
+\begin{equation}
+s(\xb)
+=
+\beta_0
++
+\sum_{i=1}^d f_i^{(r_i(\mathbf{X}_{-i}))}(x_i),
+\label{eq:calm-score}
+\end{equation}
+where the region-selection functions $\{r_i\}$ (or equivalently the trees
+$\{T_i\}$) are treated as fixed.
+Let
+\[
+m(\xb)=\mathbb{E}[Y\mid \mathbf{X}=\xb]
+\]
+denote the true regression function.
+We assume regression with identity link and squared loss, and $\mathbb{E}[Y^2]<\infty$.
+We restrict attention to scores $s\in L_2(P_{\mathbf{X}})$ (hence $m\in L_2(P_{\mathbf{X}})$).
+
+To ensure identifiability, we impose the centering condition
+\begin{equation}
+\mathbb{E}\!\left[
+f_i^{(r)}(X_i)\,\middle|\, r_i(\mathbf{X}_{-i})=r
+\right]=0
+\quad
+\text{for all } i,r \text{ with } \mathbb{P}(r_i(\mathbf{X}_{-i})=r)>0.
+\label{eq:centering}
+\end{equation}
+This convention assigns all region-wise constants to the intercept $\beta_0$
+and ensures uniqueness of the decomposition.
+
+Let $\mathcal H(\{T_i\})$ denote the class of all CALM score functions of the form
+\eqref{eq:calm-score} satisfying \eqref{eq:centering}, and assume $\mathcal H(\{T_i\})\subset L_2(P_{\mathbf{X}})$ is a nonempty closed \emph{convex} set.
+
+\subsubsection{Population target}
+
+\begin{proposition}[Population optimality]
+\label{prop:population}
+There exists at least one minimizer
+\[
+s^\star
+\in
+\arg\min_{s\in\mathcal H(\{T_i\})}
+\mathbb{E}[(Y-s(\mathbf{X}))^2],
+\]
+and it satisfies
+\[
+s^\star
+\in
+\arg\min_{s\in\mathcal H(\{T_i\})}
+\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2].
+\]
+In particular,
+\[
+\mathbb{E}[(Y-s^\star(\mathbf{X}))^2]
+-
+\mathbb{E}[(Y-m(\mathbf{X}))^2]
+=
+\mathbb{E}[(m(\mathbf{X})-s^\star(\mathbf{X}))^2].
+\]
+\end{proposition}
+
+\begin{proof}
+For any measurable function $s$,
+\[
+Y-s(\mathbf{X})
+=
+(Y-m(\mathbf{X}))+(m(\mathbf{X})-s(\mathbf{X})).
+\]
+Taking squares and expectations yields
+\[
+\mathbb{E}[(Y-s(\mathbf{X}))^2]
+=
+\mathbb{E}[(Y-m(\mathbf{X}))^2]
++
+\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2],
+\]
+since $\mathbb{E}[Y-m(\mathbf{X})\mid \mathbf{X}]=0$ eliminates the cross-term.
+The first term does not depend on $s$, so minimizing prediction error over
+$\mathcal H(\{T_i\})$ is equivalent to minimizing
+$\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2]$.
+Existence of $s^\star$ follows since $\mathcal H(\{T_i\})\subset L_2(P_{\mathbf{X}})$ is nonempty, closed, and convex.
+Condition~\eqref{eq:centering} ensures uniqueness of the representation
+$(\beta_0,\{f_i^{(r)}\})$ for any given $s\in\mathcal H(\{T_i\})$, assuming no exact functional dependence (concurvity) among features within each region.
+\end{proof}
+
+\paragraph{Interpretation.}
+Proposition~\ref{prop:population} shows that, with fixed regions, Step~3 computes an $L_2(P_{\mathbf{X}})$-best approximation of the true regression function $m$ within the
+CALM function class.
+Any remaining error is therefore purely due to the structural limitations of
+the chosen regions and univariate components, not to the optimization procedure.
+
+\subsubsection{Empirical convergence of exact Step~3}
+
+Given i.i.d.\ data $\{(x^{(k)},y^{(k)})\}_{k=1}^N$, define the empirical risk
+\[
+\widehat{\mathcal R}_N(s)
+=
+\frac{1}{N}\sum_{k=1}^N (y^{(k)}-s(x^{(k)}))^2.
+\]
+
+\begin{proposition}[Convergence of exact cyclic regional backfitting]
+\label{prop:empirical}
+Assume fixed trees and squared loss.
+Consider an idealized version of Step~3 that cyclically updates each
+$f_i^{(r)}$ by exactly minimizing $\widehat{\mathcal R}_N$ over that function
+using only samples with $r_i(\mathbf{x}^{(k)}_{-i})=r$, followed by empirical centering implemented by shifting the region-wise sample mean from $f_i^{(r)}$ into the intercept $\beta_0$, so that fitted values (and hence $\widehat{\mathcal R}_N$) are unchanged.
+Then $\widehat{\mathcal R}_N$ is non-increasing along the iterates, and the
+procedure converges (in empirical $L_2$) to a limit $\hat s\in\arg\min_{s\in\mathcal H(\{T_i\})}\widehat{\mathcal R}_N(s)$.
+Moreover, the fitted-value vector $(\hat s(\mathbf{x}^{(1)}),\ldots,\hat s(\mathbf{x}^{(N)}))$ is unique.
+\end{proposition}
+
+\begin{proof}
+With fixed trees, the CALM score is linear in the collection of shape functions
+$\{f_i^{(r)}\}$ evaluated on the data, and $\widehat{\mathcal R}_N$ is a convex
+quadratic function of these parameters.
+On the finite sample, $\widehat{\mathcal R}_N$ depends on each $f_i^{(r)}$ only through the finite vector
+$\{f_i^{(r)}(x_i^{(k)}): r_i(\mathbf{x}_{-i}^{(k)})=r\}$, so the problem can be viewed as a finite-dimensional least-squares problem.
+Each regional update solves the exact least-squares problem for one block of
+parameters while holding the others fixed, and therefore cannot increase
+$\widehat{\mathcal R}_N$.
+Although regions overlap across features, all updates jointly optimize a single
+global objective.
+Standard results for cyclic block coordinate descent on convex quadratics imply
+convergence to a global minimizer, and the minimizing fitted values are unique by strict convexity of the quadratic loss in the fitted-value vector.
+The centering condition~\eqref{eq:centering} ensures a unique decomposition into components.
+\end{proof}
+
+\paragraph{Interpretation.}
+This result shows that Step~3 is not a collection of independent local fits.
+Instead, it performs a coupled optimization of a single additive predictor with
+region-gated components, analogous to classical backfitting for GAMs.
+Under exact updates, this procedure is guaranteed to converge to the best CALM
+fit for the given data and fixed regions.
+
+\newpage
+\section{Formal Proofs for Interpretability Properties}
+\label{app:interpretability}
+
+This appendix provides formal characterizations and proofs for the interpretability properties discussed in Section~\ref{subsec:interpretability-properties}. For each property, we define it precisely and analyze whether it can be answered exactly under  \gam, \gamm, and \method{}.
+
+\textbf{Note on link functions.} Properties P1--P3 are stated and proved for the additive linear predictor $\eta(\xb) = \beta_0 + \sum_i f_i^{(r_i(\xbi))}(x_i)$. When a non-identity link function $g$ is used (Eq.~1), these properties apply to $\eta$ and translate to the final output $\hat{y} = g^{-1}(\eta)$ for any monotone link (e.g., logit, log).
+
+\begin{proposition}[Local Feature Contribution]
+
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function, and fix an input \( \xb = (x_1, \dots, x_d) \in \mathbb{R}^d \). For each index \( i \in \{1, \dots, d\} \), we define the local contribution \( \phi_i(\xb) \in \mathbb{R} \) as a function intended to represent the contribution of feature \( x_i \) to the output \( \hat{y}(\xb) \). We analyze whether such a decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb)
+\]
+is uniquely determined by the structure of the model.
+
+\textbf{(A) In \gam.}
+Assume the model has the additive form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \). Then for all \( i \in \{1, \dots, d\} \),
+\[
+\phi_i(\xb) := f_i(x_i)
+\]
+is well-defined, and
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb).
+\]
+
+\textbf{(B) In \gamm.}
+Assume the model includes pairwise interactions:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j) + \sum_{j<k} f_{jk}(x_j, x_k),
+\]
+where each \( f_j : \mathbb{R} \to \mathbb{R} \) and \( f_{jk} : \mathbb{R}^2 \to \mathbb{R} \). Then in general, there does not exist a unique additive decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb)
+\]
+with each \( \phi_i(\xb) \) depending only on \( x_i \).
+
+\textbf{(C) In \method{}.}
+Assume the model has the form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where for each \( j \), \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) is a region selector and \( f_j^{(r)} : \mathbb{R} \to \mathbb{R} \) is a univariate shape function for region \( r \). Here \( \xbj := \xb \setminus x_j \in \mathbb{R}^{d-1} \).
+
+Then for all \( i \in \{1, \dots, d\} \),
+\[
+\phi_i(\xb) := f_i^{(r_i(\xbi))}(x_i)
+\]
+is well-defined, and
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb).
+\]
+\end{proposition}
+
+\begin{proof}
+We examine each case separately.
+
+\textbf{(A) In \gam.} By direct substitution, the prediction is an additive sum of univariate functions, each depending only on a single feature \( x_j \). Thus the contribution of feature \( x_i \) is uniquely defined as \( f_i(x_i) \), and the decomposition is exact. 
+
+\textbf{(B) In \gamm.} Suppose, for contradiction, that there exists a decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb),
+\]
+where each \( \phi_i : \mathbb{R}^d \to \mathbb{R} \) represents the contribution of feature \( x_i \) and depends only on \( x_i \), i.e., \( \phi_i(\xb) = \phi_i(x_i) \).
+
+Then each interaction term \( f_{jk}(x_j, x_k) \) must be split between \( \phi_j \) and \( \phi_k \) in such a way that the total sum remains correct and additive over individual features. This is only possible if \( f_{jk} \) is additively separable, i.e., if there exist functions \( g_j, g_k : \mathbb{R} \to \mathbb{R} \) such that
+\[
+f_{jk}(x_j, x_k) = g_j(x_j) + g_k(x_k).
+\]
+However, the model does not constrain \( f_{jk} \) to be separable. In the general case, \( f_{jk} \) is non-separable and depends jointly on \( x_j \) and \( x_k \).
+
+Therefore, no decomposition \( \sum_i \phi_i(x_i) \) can reproduce the prediction \( \hat{y}(\xb) \) using only univariate terms. The contributions \( \phi_i(\xb) \) are not uniquely determined by the model, and must rely on external assumptions or post-hoc attribution methods.
+
+ \textbf{(C) In \method{}.} For a fixed input \( \xb \), each region function \( r_j(\xbj) \) returns a unique region index in \( \{1, \dots, R_j\} \). The corresponding function \( f_j^{(r_j(\xbj))} \) is applied to \( x_j \), yielding a scalar. Thus, the contribution of feature \( x_i \) is precisely defined as:
+\[
+\phi_i(\xb) := f_i^{(r_i(\xbi))}(x_i),
+\]
+and the model prediction is recovered by summing over all features:
+\[
+\hat{y}(\xb) = \sum_{i=1}^d f_i^{(r_i(\xbi))}(x_i) = \sum_{i=1}^d \phi_i(\xb). 
+\]
+\end{proof}
+
+The second property asks: \emph{How does the prediction change if we perturb a single feature \( x_i \) while keeping all others fixed?} The answer differs across \gam, \gamm, and \method{}, as shown below.
+
+\begin{proposition}[Regional Feature Sensitivity)]
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function. Fix an input \( \xb \in \mathbb{R}^d \), an index \( i \in \{1, \dots, d\} \), and a perturbation \( \varepsilon > 0 \). Define the prediction change under perturbation of \( x_i \) as
+\[
+\Delta \hat{y} := \hat{y}(\xb + \varepsilon \mathbf{e}_i) - \hat{y}(\xb).
+\]
+We analyze how \( \Delta \hat{y} \) can be computed in \gam, \gamm, and \method{}.
+
+\textbf{(A) In \gam.}
+Assume the model has the additive form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \) univariate. Then
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i).
+\]
+
+\textbf{(B) In \gamm.}
+We show that in \gamm, the change \( \Delta \hat{y} \) caused by perturbing \( x_i \) depends on the values of all interacting features \( x_j \) for \( j \ne i \), and thus cannot be computed from \( x_i \) alone.
+
+\textbf{(C) In \method{}:} We show that the change in prediction \( \Delta \hat{y} := \hat{y}(\xb + \varepsilon \mathbf{e}_i) - \hat{y}(\xb) \) is computable from \( x_i \) alone if and only if no region transitions are triggered in other features. Otherwise, the change depends on \( \xbi \), and regional sensitivity is not determined solely by \( x_i \).
+
+\end{proposition}
+
+\begin{proof}
+
+\textit{Note:} The proposition is stated for a fixed input $\xb$ (single-valued); the set-valued definition of P2 in the main text arises by ranging over all possible values of $\xbi$, each of which selects a region $r_i(\xbi) \in \{1, \dots, R_i\}$ and thus one element of the set $\{\Delta f_i^{(r)}\}_{r=1}^{R_i}$.
+
+\textbf{(A) In \gam.}
+Since all other features remain unchanged, and their contributions are independent of \( x_i \), we have
+\[
+\hat{y}(\xb + \varepsilon \mathbf{e}_i) = \sum_{j \neq i} f_j(x_j) + f_i(x_i + \varepsilon),
+\]
+\[
+\hat{y}(\xb) = \sum_{j \neq i} f_j(x_j) + f_i(x_i),
+\]
+and therefore
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i). 
+\]
+
+\textbf{(B) In \gamm.}
+Let \( \mathcal{J} := \{ j \ne i \mid f_{ij}(x_i, x_j) \text{ is present in the model} \} \), i.e., the set of features that interact with \( x_i \). Since only \( x_i \) is perturbed, all other features remain unchanged. The only affected terms are the univariate function \( f_i(x_i) \), and the interaction terms \( f_{ij}(x_i, x_j) \) for each \( j \in \mathcal{J} \). All other terms in the model remain constant.
+
+The prediction after perturbation is:
+\[
+\hat{y}(\xb + \varepsilon \mathbf{e}_i) = f_i(x_i + \varepsilon) + \sum_{j \in \mathcal{J}} f_j(x_j) + \sum_{j \in \mathcal{J}} f_{ij}(x_i + \varepsilon, x_j) + C,
+\]
+and before perturbation:
+\[
+\hat{y}(\xb) = f_i(x_i) + \sum_{j \in \mathcal{J}} f_j(x_j) + \sum_{j \in \mathcal{J}} f_{ij}(x_i, x_j) + C,
+\]
+where \( C := \sum_{j<k,\, j,k \ne i} f_{jk}(x_j, x_k) \) denotes the interaction terms not involving \( x_i \), which are unaffected.
+
+Subtracting, we obtain:
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i) + \sum_{j \in \mathcal{J}} \left[ f_{ij}(x_i + \varepsilon, x_j) - f_{ij}(x_i, x_j) \right].
+\]
+
+Since this expression depends on interacting \( x_j \) for \( j \ne i \), it cannot be computed from \( x_i \) alone. 
+
+\textbf{(C) In \method{}.}
+Assume the model has the form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) assigns a region index to each feature \( j \) based on the context \( \xbj := \xb \setminus x_j \), and \( f_j^{(r)} : \mathbb{R} \to \mathbb{R} \) is the shape function for region \( r \).
+
+Let \( \xbi = \xb \setminus x_i \), and define the perturbation \( x_i \mapsto x_i + \varepsilon \). Then
+\[
+\Delta \hat{y} = f_i^{(r_i(\xbi))}(x_i + \varepsilon) - f_i^{(r_i(\xbi))}(x_i)
++ \sum_{j \ne i} \left[ f_j^{(r_j(\xbj^{+\varepsilon}))}(x_j) - f_j^{(r_j(\xbj))}(x_j) \right],
+\]
+where \( \xbj^{+\varepsilon} := \xbj \) with \( x_i \mapsto x_i + \varepsilon \) (since \( x_i \in \xbj \) for all \( j \ne i \)).
+
+\textit{Case 1: No region transitions in other features.}
+Assume that for all \( j \ne i \), we have \( r_j(\xbj^{+\varepsilon}) = r_j(\xbj) \). Then:
+\[
+\Delta \hat{y} = f_i^{(r_i(\xbi))}(x_i + \varepsilon) - f_i^{(r_i(\xbi))}(x_i).
+\]
+This case is fully interpretable from the function \( f_i^{(r)} \) alone.
+
+\textit{Case 2: Region transitions occur in other features.}
+If for some \( j \ne i \), the region function changes: \( r_j(\xbj^{+\varepsilon}) \ne r_j(\xbj) \), then the additional terms contribute:
+\[
+\Delta f_j := f_j^{(r_j(\xbj^{+\varepsilon}))}(x_j) - f_j^{(r_j(\xbj))}(x_j).
+\]
+Hence, the total change includes not only the direct shift in \( f_i \), but also discrete region-based changes in other features and the value of \( \Delta \hat{y} \) cannot be recovered from \( x_i \) alone. 
+\end{proof}
+
+The third property asks whether increasing a feature always increases the model's prediction, regardless of the values of other features. In other words, does the model treat the feature as globally monotonic?
+
+\begin{proposition}[Global Feature Monotonicity]
+
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function, and fix a feature index \( i \in \{1, \dots, d\} \). Define the global monotonicity condition for feature \( x_i \) as follows: the model is said to be \emph{globally increasing in \( x_i \)} if for all \( \xb \in \mathbb{R}^d \) and all \( \delta > 0 \),
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) \ge \hat{y}(\xb),
+\]
+and \emph{strictly increasing} if the inequality is strict.
+
+We analyze whether this property can be verified from the structure of the model.
+
+\textbf{(A) In \gam.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \).
+
+Then the model is globally increasing in \( x_i \) if and only if \( f_i \) is monotonically increasing.
+
+\textbf{(B) In \gamm.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j) + \sum_{j<k} f_{jk}(x_j, x_k).
+\]
+
+Then global monotonicity in \( x_i \) cannot be determined from \( f_i \) alone.
+
+\subparagraph{(C) In \method{}.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) is a region selector, and \( \xbj := \xb \setminus x_j \).
+
+Then global monotonicity in \( x_i \) holds  if the following two conditions are satisfied:
+\begin{enumerate}
+  \item For all regions \( r \in \{1, \dots, R_i\} \), the function \( f_i^{(r)} : \mathbb{R} \to \mathbb{R} \) is increasing.
+  \item For all \( j \ne i \), and all \( x_j \in \mathbb{R} \), the function \( x_i \mapsto f_j^{(r_j(\xbj))}(x_j) \) is non-decreasing; i.e., region transitions caused by changing \( x_i \) do not decrease \( f_j \)'s contribution.
+\end{enumerate}
+
+\end{proposition}
+
+\begin{proof}
+
+\textbf{(A) In \gam.}
+Since the model is additive and each term depends only on a single variable, we have:
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb) = f_i(x_i + \delta) - f_i(x_i).
+\]
+Thus, \( \hat{y}(\xb + \delta \mathbf{e}_i) \ge \hat{y}(\xb) \) if and only if \( f_i \) is increasing. 
+
+\textbf{(B) In \gamm.}  As in case (A), \( f_i(x_i + \delta) - f_i(x_i) \) gives the direct contribution. However, for each \( j \ne i \), the term \( f_{ij}(x_i, x_j) \) also contributes. The total change is:
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb) = f_i(x_i + \delta) - f_i(x_i)
++ \sum_{j \ne i} \left[ f_{ij}(x_i + \delta, x_j) - f_{ij}(x_i, x_j) \right].
+\]
+The sign of this expression depends on the values of \( x_j \), and therefore cannot be determined from \( f_i \) alone. Consequently, verifying global monotonicity in \( x_i \) requires knowing the full interaction structure and input values. 
+
+\textbf{(C) In \method{}}
+Let \( \xb \in \mathbb{R}^d \) and \( \delta > 0 \). Define:
+\[
+\Delta \hat{y} := \hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb).
+\]
+Then:
+\[
+\Delta \hat{y} =
+f_i^{(r_i(\xbi))}(x_i + \delta) - f_i^{(r_i(\xbi))}(x_i)
++ \sum_{j \ne i} \left[
+f_j^{(r_j(\xbj^{+\delta}))}(x_j) - f_j^{(r_j(\xbj))}(x_j)
+\right],
+\]
+where \( \xbj^{+\delta} \) is obtained by replacing \( x_i \mapsto x_i + \delta \) in \( \xbj \).
+
+The first term is non-negative if \( f_i^{(r)} \) is increasing for all regions \( r \), and the region \( r_i(\xbi) \) is fixed.
+
+The second term is a sum over changes in other features' contributions due to possible changes in their regions \( r_j \). For the model to be globally increasing in \( x_i \), all such contributions must be non-negative. This requires that increasing \( x_i \) does not cause a decrease in the contribution of any other feature \( x_j \), i.e., region transitions must preserve or increase each \( f_j \).
+
+Therefore, global monotonicity in \( x_i \) requires both conditions above. Conversely, if both conditions are satisfied, then each term in the sum is non-negative, implying \( \Delta \hat{y} \ge 0 \). 
+
+\end{proof}
+
+\newpage
+\section{Detailed Experiments}\label{app:detailed-experiments}
+
+\subsection{Experimental Setup Details}
+\paragraph{Reporting convention.}
+As in Section~\ref{sec:empirical-evaluation}, we report mean $\pm$ standard deviation over 5-fold cross-validation.
+
+\label{app:datasets-model-details}
+\begin{table}[htbp]
+    \centering
+    \small
+    
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \caption{Classification Datasets}
+        \label{tab:clf-datasets}
+        \begin{tabular}{ccc}
+            \toprule
+            \textbf{Dataset} & \textbf{Size} & \textbf{Attributes} \\
+            \midrule
+            Adult & 45222 & 13 \\
+            COMPAS & 6167 & 9 \\
+            HELOC & 10459 & 23 \\
+            MIMIC2 & 24508 & 17 \\
+            Appendicitis & 106 & 7 \\
+            Phoneme & 5404 & 5 \\
+            SPECTF & 349 & 44 \\
+            Magic & 19020 & 10 \\
+            Bank & 45211 & 16 \\
+            Churn & 5000 & 19 \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
+    \hfill %
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \caption{Regression Datasets}
+        \label{tab:regr-datasets}
+        \begin{tabular}{ccc}
+            \toprule
+            \textbf{Dataset} & \textbf{Size} & \textbf{Attributes} \\
+            \midrule
+            Bike Sharing & 17379 & 11 \\
+            California Housing & 20640 & 8 \\
+            Parkinsons Motor & 5875 & 19 \\
+            Parkinsons Total & 5875 & 19 \\
+            Seoul Bike & 8465 & 14 \\
+            Wine & 6497 & 11 \\
+            Energy & 19735 & 28 \\
+            CCPP & 9568 & 4 \\
+            Electrical & 10000 & 13 \\
+            Elevators & 16599 & 18 \\
+            No2 & 500 & 7 \\
+            Sensory & 576 & 11 \\
+            Airfoil & 1503 & 5 \\
+            Skill Craft & 3338 & 19 \\
+            Ailerons & 13750 & 39 \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
+\end{table}
+
+\paragraph{Datasets details.}
+Tables~\ref{tab:clf-datasets} and~\ref{tab:regr-datasets} summarize the 10 classification and 15 regression datasets used in our experiments. These datasets are sourced from various publicly available repositories. The UCI Machine Learning Repository \cite{uci_ml} provides datasets including Adult, Magic, Bank, Bike Sharing, Parkinson’s Motor, Parkinson’s Total, Seoul Bike, Wine, CCPP and Skill Craft. OpenML \cite{OpenML2013} offers datasets such as Electrical, Elevators, No2, Sensory, Airfoil, and Ailerons. The Penn Machine Learning Benchmarks (PMLB) \cite{romano2021pmlb} includes datasets like Appendicitis, Phoneme, SPECTF, and Churn. Additional datasets used in our experiments include California Housing \cite{pace1997sparse}, MIMIC-II \cite{saeed2011mimic}, COMPAS \cite{propublica2016compas}, HELOC \cite{oliabev_heloc}, and Energy \cite{luism78_energydata, candanedo2017energy}. 
+
+\paragraph{Data Preprocessing.}
+All input features are standardized using z-score normalization. For regression tasks, the target variable $y$ is also standard scaled. The only exception is the GAMI-Net model, which requires input features to be scaled using min-max normalization.
+For RMSE, predictions and targets are inverse-transformed to the original scale prior to evaluation.
+
+\paragraph{Model Configurations.}
+
+Our black box models comprise a fully connected neural network, a random forest and an XGBoost ensemble. The deep network contains two hidden layers with 50 units each; ReLU activations are used for regression whereas a final sigmoid unit closes the classification variant. Training is carried out for 200 epochs with the Adam optimiser (learning rate=0.001), a batch size of 200 and either mean-squared error or binary cross-entropy loss, depending on the task. The random-forest baseline consists of 500 trees grown to a maximum depth of 25 with a minimum of three samples required at each leaf. For boosted trees we employ XGBoost with 300 boosting rounds, a learning rate of 0.1 and the log-loss evaluation metric for classification
+
+For GAM models we consider NAM and EBM without interactions and Spline. The Neural Additive Model (NAM) builds one independent multilayer perceptron per feature; each sub-network has three hidden layers of 100,100 and 10 ReLU units followed by a linear output, and the additive sum is passed through a sigmoid for binary classification. Training uses Adam (learning rate 0.001), for 10 epochs and a mini-batch size of 32. Spline-GAMs are implemented with PyGAM’s LinearGAM or LogisticGAM, allocating a single spline term to every feature while relying on PyGAM’s automatic smoothing. Finally, the Explainable Boosting Machine (EBM) is used without interaction terms by explicitly setting $n\_interactions=0$.
+
+To capture pairwise interactions we experiment with three GA\textsuperscript{2}M variants. EB\textsuperscript{2}M extends the EBM by enabling interactions with a default strength of 0.9; NODE‑GA\textsuperscript{2}M activates its interaction mode via the ga2m=1 flag and restricts training to a five‑minute time limit to ensure parity with the other models; this cap was chosen to match the practical training budget of competing methods, and we observed that NODE‑GA\textsuperscript{2}M's training loss had largely plateaued within this window on most datasets where the cap was reached; GAMI‑Net is run with the default hyper‑parameters.
+
+For \method{} , we configure the heterogeneity drop threshold to 0.2, determining whether a split is considered statistically significant. The region detector, which measures heterogeneity , relies on Partial Dependence Plots (PDP) for RF and XGBoost black-box models, while for DNNs we consider both PDP and RHALE to measure heterogeneity. The detector evaluates 20 candidate split points per feature. The GAM used within regions is an EBM without interactions and the \method{} is applied on top of all three black-box models (DNN, RF, XGBoost).
+
+\paragraph{Compatibility.}The GAMI-Net baseline depends on a native binary (lib\_ebmcore\_mac\_x64.dylib) compiled for x86\_64 architecture. As a result, it is not compatible with Apple Silicon Macs, and running it on such systems will lead to an architecture mismatch error. This issue is limited to this external model and does not affect any of the proposed methods or other baselines. We provide instructions in the README file to guide such users on running all other methods except GAMI-Net.
+
+\paragraph{Computer Resources.}All experiments were conducted on an in-house server with cloud infrastructure equipped with an Intel(R) Core(TM) i9-10900X CPU @ 3.70GHz, 128 GB of RAM. No GPU acceleration was utilized during these experiments.
+
+\subsection{Number of Interactions}
+
+\paragraph{Number of Interactions (Classification).}
+For \method{}, the number of interactions is computed as $\sum_i |S_i|$, where $S_i$ is the set of conditioning features appearing in the region tree $T_i$ for feature $x_i$ (i.e., the set of features used as split variables in $T_i$).
+Table~\ref{tab:classification_interactions} reports the number of feature interactions selected or used by each model across classification datasets. \method{} consistently uses significantly fewer interactions than GA$^2$M-style baselines, often by a wide margin. In most datasets, \method{} activates less than a third of the interactions compared to NodeGA$^2$M, and even fewer than GAMINet’s default of 20. The numbers shown for \method{} reflect actual detected regions with interaction-specific behavior, confirming that its compact regionalization mechanism results in sparse and interpretable models. 
+
+\paragraph{Number of Interactions (Regression).}
+As shown in Table~\ref{tab:regression_interactions}, \method{} activates fewer feature interactions than NodeGA$^2$M and GAMI-Net in regression tasks, and is comparable to EB$^2$M (15.1 vs.\ 14.1 on average). While GAMI-Net and EB$^2$M use a fixed or near-fixed interaction set, and NodeGA$^2$M often selects over 100 interactions, \method{} remains sparse across datasets.
+
+\begin{table}[t]
+  \centering
+  \caption{Number of Interactions per Model in Classification Datasets}
+  \label{tab:classification_interactions}
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Dataset} & \textbf{\method{}} & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+      \midrule
+        Adult & $4.2 \text{\scriptsize$\pm$1.4}$ & $12.0 \text{\scriptsize$\pm$0.0}$ & $72.6 \text{\scriptsize$\pm$3.2}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        COMPAS & $1.4 \text{\scriptsize$\pm$1.7}$ & $9.0 \text{\scriptsize$\pm$0.0}$ & $36.0 \text{\scriptsize$\pm$0.0}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        HELOC & $1.1 \text{\scriptsize$\pm$1.6}$ & $21.0 \text{\scriptsize$\pm$0.0}$ & $163.8 \text{\scriptsize$\pm$4.4}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        MIMIC2 & $11.5 \text{\scriptsize$\pm$2.1}$ & $16.0 \text{\scriptsize$\pm$0.0}$ & $115.0 \text{\scriptsize$\pm$3.3}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Appendicitis & $4.0 \text{\scriptsize$\pm$1.7}$ & $7.0 \text{\scriptsize$\pm$0.0}$ & $21.0 \text{\scriptsize$\pm$0.0}$ & $6.2 \text{\scriptsize$\pm$8.1}$ \\
+        Phoneme & $8.6 \text{\scriptsize$\pm$1.6}$ & $5.0 \text{\scriptsize$\pm$0.0}$ & $10.0 \text{\scriptsize$\pm$0.0}$ & $10.0 \text{\scriptsize$\pm$0.0}$ \\
+        SPECTF & $0.0 \text{\scriptsize$\pm$0.0}$ & $40.0 \text{\scriptsize$\pm$0.0}$ & $273.0 \text{\scriptsize$\pm$14.4}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Magic & $8.5 \text{\scriptsize$\pm$2.4}$ & $9.0 \text{\scriptsize$\pm$0.0}$ & $44.0 \text{\scriptsize$\pm$0.6}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Bank & $9.2 \text{\scriptsize$\pm$2.0}$ & $15.0 \text{\scriptsize$\pm$0.0}$ & $104.2 \text{\scriptsize$\pm$3.2}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Churn & $14.0 \text{\scriptsize$\pm$0.0}$ & $18.0 \text{\scriptsize$\pm$0.0}$ & $137.4 \text{\scriptsize$\pm$2.9}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+      \midrule
+      \textbf{Avg.} & 6.2 & 15.2 & 97.7 & 17.6 \\
+      \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \caption{Number of Interactions per Model in Regression Datasets}
+  \label{tab:regression_interactions}
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Dataset} & \textbf{\method{}} & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+      \midrule
+        Bike Sharing & $19.3 \text{\scriptsize$\pm$2.7}$ & $10.0 \text{\scriptsize$\pm$0.0}$ & $53.6 \text{\scriptsize$\pm$1.4}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        California Housing & $10.7 \text{\scriptsize$\pm$2.0}$ & $8.0 \text{\scriptsize$\pm$0.0}$ & $28.0 \text{\scriptsize$\pm$0.0}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Parkinsons Motor & $13.8 \text{\scriptsize$\pm$4.4}$ & $18.0 \text{\scriptsize$\pm$0.0}$ & $126.2 \text{\scriptsize$\pm$1.7}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Parkinsons Total & $14.4 \text{\scriptsize$\pm$5.8}$ & $18.0 \text{\scriptsize$\pm$0.0}$ & $129.2 \text{\scriptsize$\pm$3.9}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Seoul Bike & $20.4 \text{\scriptsize$\pm$1.0}$ & $13.0 \text{\scriptsize$\pm$0.0}$ & $83.2 \text{\scriptsize$\pm$0.7}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Wine & $13.9 \text{\scriptsize$\pm$3.3}$ & $10.0 \text{\scriptsize$\pm$0.0}$ & $54.6 \text{\scriptsize$\pm$0.5}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Energy & $49.2 \text{\scriptsize$\pm$4.4}$ & $26.0 \text{\scriptsize$\pm$0.0}$ & $192.0 \text{\scriptsize$\pm$4.5}$ & $4.0 \text{\scriptsize$\pm$8.0}$ \\
+        CCPP & $1.9 \text{\scriptsize$\pm$2.2}$ & $4.0 \text{\scriptsize$\pm$0.0}$ & $6.0 \text{\scriptsize$\pm$0.0}$ & $5.8 \text{\scriptsize$\pm$0.4}$ \\
+        Electrical & $0.0 \text{\scriptsize$\pm$0.0}$ & $12.0 \text{\scriptsize$\pm$0.0}$ & $68.6 \text{\scriptsize$\pm$3.0}$ & $12.0 \text{\scriptsize$\pm$0.0}$ \\
+        Elevators & $11.7 \text{\scriptsize$\pm$3.0}$ & $17.0 \text{\scriptsize$\pm$0.0}$ & $115.4 \text{\scriptsize$\pm$2.1}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        No2 & $12.8 \text{\scriptsize$\pm$1.9}$ & $7.0 \text{\scriptsize$\pm$0.0}$ & $21.0 \text{\scriptsize$\pm$0.0}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+        Sensory & $6.9 \text{\scriptsize$\pm$4.2}$ & $10.0 \text{\scriptsize$\pm$0.0}$ & $54.0 \text{\scriptsize$\pm$0.9}$ & $16.0 \text{\scriptsize$\pm$4.9}$ \\
+        Airfoil & $9.3 \text{\scriptsize$\pm$0.5}$ & $5.0 \text{\scriptsize$\pm$0.0}$ & $10.0 \text{\scriptsize$\pm$0.0}$ & $10.0 \text{\scriptsize$\pm$0.0}$ \\
+        Skill Craft & $0.0 \text{\scriptsize$\pm$0.0}$ & $18.0 \text{\scriptsize$\pm$0.0}$ & $135.6 \text{\scriptsize$\pm$2.4}$ & $16.0 \text{\scriptsize$\pm$8.0}$ \\
+        Ailerons & $41.7 \text{\scriptsize$\pm$2.6}$ & $36.0 \text{\scriptsize$\pm$0.0}$ & $232.4 \text{\scriptsize$\pm$5.1}$ & $20.0 \text{\scriptsize$\pm$0.0}$ \\
+      \midrule
+      \textbf{Avg.} & 15.1 & 14.1 & 87.3 & 16.3 \\
+      \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Practical Runtime}
+
+\begin{table}[htbp]
+\caption{Runtime (Seconds) for Classification Datasets}
+\label{tab:clf-time-def}
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{2}{c}{\textbf{GAM}} & \multicolumn{1}{c}{\textbf{\method{}}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4}  \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} &   & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+\midrule
+Adult & $0.2 \text{\scriptsize$\pm$0.01}$ & $38 \text{\scriptsize$\pm$2}$ & $10 \text{\scriptsize$\pm$1}$ & $36 \text{\scriptsize$\pm$1}$ & $13 \text{\scriptsize$\pm$2}$ & $97 \text{\scriptsize$\pm$9}$ & $718 \text{\scriptsize$\pm$122}$ \\
+COMPAS & $0.1 \text{\scriptsize$\pm$0.004}$ & $10 \text{\scriptsize$\pm$0.1}$ & $2 \text{\scriptsize$\pm$2}$ & $2 \text{\scriptsize$\pm$0.1}$ & $1 \text{\scriptsize$\pm$0.04}$ & $51 \text{\scriptsize$\pm$1}$ & $129 \text{\scriptsize$\pm$5}$ \\
+HELOC & $0.2 \text{\scriptsize$\pm$0.01}$ & $31 \text{\scriptsize$\pm$6}$ & $2 \text{\scriptsize$\pm$2}$ & $17 \text{\scriptsize$\pm$1}$ & $2 \text{\scriptsize$\pm$0.2}$ & $57 \text{\scriptsize$\pm$0.1}$ & $249 \text{\scriptsize$\pm$60}$ \\
+MIMIC2 & $0.2 \text{\scriptsize$\pm$0.01}$ & $31 \text{\scriptsize$\pm$0.3}$ & $4 \text{\scriptsize$\pm$3}$ & $26 \text{\scriptsize$\pm$3}$ & $5 \text{\scriptsize$\pm$1}$ & $69 \text{\scriptsize$\pm$9}$ & $359 \text{\scriptsize$\pm$32}$ \\
+Appendicitis & $0.1 \text{\scriptsize$\pm$0.001}$ & $5 \text{\scriptsize$\pm$0.1}$ & $2 \text{\scriptsize$\pm$4}$ & $2 \text{\scriptsize$\pm$0.1}$ & $1 \text{\scriptsize$\pm$0.5}$ & $24 \text{\scriptsize$\pm$0.1}$ & $6 \text{\scriptsize$\pm$5}$ \\
+Phoneme & $0.1 \text{\scriptsize$\pm$0.01}$ & $6 \text{\scriptsize$\pm$1}$ & $3 \text{\scriptsize$\pm$4}$ & $3 \text{\scriptsize$\pm$3}$ & $4 \text{\scriptsize$\pm$1}$ & $61 \text{\scriptsize$\pm$4}$ & $166 \text{\scriptsize$\pm$38}$ \\
+SPECTF & $0.1 \text{\scriptsize$\pm$0.01}$ & $32 \text{\scriptsize$\pm$0.3}$ & $3 \text{\scriptsize$\pm$4}$ & $3 \text{\scriptsize$\pm$3}$ & $4 \text{\scriptsize$\pm$5}$ & $25 \text{\scriptsize$\pm$0.2}$ & $180 \text{\scriptsize$\pm$13}$ \\
+Magic & $0.2 \text{\scriptsize$\pm$0.003}$ & $28 \text{\scriptsize$\pm$18}$ & $5 \text{\scriptsize$\pm$5}$ & $17 \text{\scriptsize$\pm$3}$ & $7 \text{\scriptsize$\pm$4}$ & $98 \text{\scriptsize$\pm$7}$ & $489 \text{\scriptsize$\pm$63}$ \\
+Bank & $0.2 \text{\scriptsize$\pm$0.04}$ & $44 \text{\scriptsize$\pm$1}$ & $5 \text{\scriptsize$\pm$1}$ & $42 \text{\scriptsize$\pm$3}$ & $13 \text{\scriptsize$\pm$1}$ & $98 \text{\scriptsize$\pm$17}$ & $994 \text{\scriptsize$\pm$265}$ \\
+Churn & $0.2 \text{\scriptsize$\pm$0.01}$ & $19 \text{\scriptsize$\pm$3}$ & $2 \text{\scriptsize$\pm$1}$ & $10 \text{\scriptsize$\pm$4}$ & $3 \text{\scriptsize$\pm$2}$ & $56 \text{\scriptsize$\pm$2}$ & $257 \text{\scriptsize$\pm$32}$ \\
+\midrule
+\textbf{Avg.} & 0.2 & 24 & 4 & 16 & 5 & 64 & 355 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Runtime (Seconds) for Regression Datasets}
+\label{tab:regr-time-def}
+\centering
+\small 
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{2}{c}{\textbf{GAM}} & \multicolumn{1}{c}{\textbf{\method{}}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4}  \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} &   & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+\midrule
+Bike Sharing & $0.1 \text{\scriptsize$\pm$0.01}$ & $18 \text{\scriptsize$\pm$1}$ & $2 \text{\scriptsize$\pm$1}$ & $15 \text{\scriptsize$\pm$1}$ & $19 \text{\scriptsize$\pm$3}$ & $187 \text{\scriptsize$\pm$31}$ & $299 \text{\scriptsize$\pm$33}$ \\
+California Housing & $0.2 \text{\scriptsize$\pm$0.01}$ & $15 \text{\scriptsize$\pm$0.1}$ & $4 \text{\scriptsize$\pm$2}$ & $13 \text{\scriptsize$\pm$1}$ & $16 \text{\scriptsize$\pm$0.5}$ & $200 \text{\scriptsize$\pm$46}$ & $677 \text{\scriptsize$\pm$147}$ \\
+Parkinsons Motor & $0.3 \text{\scriptsize$\pm$0.003}$ & $21 \text{\scriptsize$\pm$6}$ & $5 \text{\scriptsize$\pm$2}$ & $17 \text{\scriptsize$\pm$2}$ & $44 \text{\scriptsize$\pm$4}$ & $193 \text{\scriptsize$\pm$34}$ & $536 \text{\scriptsize$\pm$88}$ \\
+Parkinsons Total & $0.3 \text{\scriptsize$\pm$0.01}$ & $18 \text{\scriptsize$\pm$0.2}$ & $5 \text{\scriptsize$\pm$3}$ & $16 \text{\scriptsize$\pm$2}$ & $40 \text{\scriptsize$\pm$5}$ & $227 \text{\scriptsize$\pm$76}$ & $543 \text{\scriptsize$\pm$79}$ \\
+Seoul Bike & $0.2 \text{\scriptsize$\pm$0.01}$ & $15 \text{\scriptsize$\pm$0.2}$ & $3 \text{\scriptsize$\pm$3}$ & $13 \text{\scriptsize$\pm$3}$ & $12 \text{\scriptsize$\pm$4}$ & $127 \text{\scriptsize$\pm$18}$ & $268 \text{\scriptsize$\pm$53}$ \\
+Wine & $0.2 \text{\scriptsize$\pm$0.01}$ & $12 \text{\scriptsize$\pm$1}$ & $2 \text{\scriptsize$\pm$3}$ & $9 \text{\scriptsize$\pm$3}$ & $3 \text{\scriptsize$\pm$0.4}$ & $62 \text{\scriptsize$\pm$10}$ & $187 \text{\scriptsize$\pm$20}$ \\
+Energy & $0.3 \text{\scriptsize$\pm$0.01}$ & $43 \text{\scriptsize$\pm$0.4}$ & $8 \text{\scriptsize$\pm$3}$ & $82 \text{\scriptsize$\pm$5}$ & $97 \text{\scriptsize$\pm$15}$ & $206 \text{\scriptsize$\pm$57}$ & $253 \text{\scriptsize$\pm$214}$ \\
+CCPP & $0.2 \text{\scriptsize$\pm$0.004}$ & $6 \text{\scriptsize$\pm$0.1}$ & $5 \text{\scriptsize$\pm$4}$ & $8 \text{\scriptsize$\pm$5}$ & $14 \text{\scriptsize$\pm$2}$ & $133 \text{\scriptsize$\pm$18}$ & $88 \text{\scriptsize$\pm$8}$ \\
+Electrical & $0.1 \text{\scriptsize$\pm$0.002}$ & $25 \text{\scriptsize$\pm$20}$ & $9 \text{\scriptsize$\pm$4}$ & $11 \text{\scriptsize$\pm$5}$ & $8 \text{\scriptsize$\pm$3}$ & $112 \text{\scriptsize$\pm$28}$ & $279 \text{\scriptsize$\pm$43}$ \\
+Elevators & $0.3 \text{\scriptsize$\pm$0.1}$ & $25 \text{\scriptsize$\pm$0.4}$ & $7 \text{\scriptsize$\pm$4}$ & $35 \text{\scriptsize$\pm$5}$ & $43 \text{\scriptsize$\pm$8}$ & $181 \text{\scriptsize$\pm$38}$ & $773 \text{\scriptsize$\pm$269}$ \\
+No2 & $0.1 \text{\scriptsize$\pm$0.003}$ & $5 \text{\scriptsize$\pm$0.04}$ & $2 \text{\scriptsize$\pm$0.1}$ & $2 \text{\scriptsize$\pm$0.1}$ & $2 \text{\scriptsize$\pm$0.1}$ & $26 \text{\scriptsize$\pm$0.1}$ & $78 \text{\scriptsize$\pm$1}$ \\
+Sensory & $0.1 \text{\scriptsize$\pm$0.001}$ & $10 \text{\scriptsize$\pm$1}$ & $4 \text{\scriptsize$\pm$6}$ & $7 \text{\scriptsize$\pm$5}$ & $2 \text{\scriptsize$\pm$0.4}$ & $27 \text{\scriptsize$\pm$0.5}$ & $74 \text{\scriptsize$\pm$16}$ \\
+Airfoil & $0.1 \text{\scriptsize$\pm$0.001}$ & $4 \text{\scriptsize$\pm$0.03}$ & $3 \text{\scriptsize$\pm$6}$ & $5 \text{\scriptsize$\pm$6}$ & $7 \text{\scriptsize$\pm$1}$ & $51 \text{\scriptsize$\pm$12}$ & $76 \text{\scriptsize$\pm$34}$ \\
+Skill Craft & $0.3 \text{\scriptsize$\pm$0.003}$ & $17 \text{\scriptsize$\pm$0.2}$ & $4 \text{\scriptsize$\pm$6}$ & $9 \text{\scriptsize$\pm$6}$ & $1 \text{\scriptsize$\pm$0.1}$ & $44 \text{\scriptsize$\pm$0.1}$ & $141 \text{\scriptsize$\pm$52}$ \\
+Ailerons & $0.3 \text{\scriptsize$\pm$0.02}$ & $53 \text{\scriptsize$\pm$1}$ & $5 \text{\scriptsize$\pm$7}$ & $70 \text{\scriptsize$\pm$8}$ & $3 \text{\scriptsize$\pm$0.1}$ & $126 \text{\scriptsize$\pm$36}$ & $619 \text{\scriptsize$\pm$134}$ \\
+\midrule
+\textbf{Avg.} & 0.2 & 19 & 5 & 21 & 21 & 127 & 326 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We report the total runtime of each method across all datasets in Tables~\ref{tab:clf-time-def} and~\ref{tab:regr-time-def}. For \method{}, the reported time includes not only the regions detection fitting steps, but also the training time of the underlying black-box model and the GAM component used within regions. While this inclusion gives a complete view of end-to-end cost, it somewhat disadvantages \method{} in comparison to other models, whose runtimes reflect only their own training processes. In practice, the black-box or GAM components can be selected to be lightweight and the blackbox model can be reused or pretrained independently, making \method{}'s region discovery step lightweight and modular.
+
+Despite this conservative accounting, \method{}'s runtime remains competitive. For example, it often trains faster than or comparably to GA$^2$M methods such as NODE-GA$^2$M and GAMI-Net, which tend to have high computational overhead. On small and medium-sized datasets like COMPAS, HELOC, California Housing, and Wine, \method{} runs in under a minute, showing that its interpretability gains come with reasonable computational cost. On larger datasets such as Bank or Ailerons, \method{}’s runtime scales moderately but remains practical.
+
+\subsection{Performance Metrics for all Experiments }
+\paragraph{Performance Summary.}
+We evaluated \method{} on 25 datasets using three model classes: DNN, XGB, and RF. For each model and dataset, we compare \method{} to both its corresponding GAM baseline and the original black-box model.
+
+In comparisons with GAMs, we match the model structure: for example, CALM-NAM is compared directly to NAM, so the performance difference reflects only the benefit of introducing regional modeling. In comparisons with the black-box, we report the accuracy of the \emph{best} CALM-GAM. For XGB and RF, this is selected across multiple GAM types (NAM, EBM, Spline) using a fixed heterogeneity threshold of 0.2. For DNNs, we first identify the best heterogeneity modeling method (PDP or RHALE) for each GAM, and then select the best-performing GAM among all types. While the threshold is fixed in our experiments, we note that alternative thresholds could yield further improvements. 
+
+The results cover six tables: Tables~\ref{tab:regr-rmse-dnn}–\ref{tab:regr-rmse-rf} report performance on regression datasets using DNN, XGB, and RF respectively, while Tables~\ref{tab:clf-acc-dnn}–\ref{tab:clf-acc-rf} report on the same three model classes for classification datasets. Across these settings, \method{} consistently outperforms the corresponding GAM baseline. It matches or exceeds the performance of its GAM counterpart in 97.8\% and 100\% of cases for DNNs (Tables~\ref{tab:regr-rmse-dnn}, \ref{tab:clf-acc-dnn}), 97.8\% and 96.7\% for XGB (Tables~\ref{tab:regr-rmse-xgb}, \ref{tab:clf-acc-xgb}), and 95.6\% and 96.7\% for RF (Tables~\ref{tab:regr-rmse-rf}, \ref{tab:clf-acc-rf}). These results reflect direct, structure-matched comparisons between \method{} and GAMs of the same architecture.
+
+When compared to the black-box models, \method{} also achieves strong results. For regression, the best CALM-GAM variant strictly outperforms the black-box on 9/15 datasets with DNN (with 2 ties; Table~\ref{tab:regr-rmse-dnn}), on 3/15 with XGB (2 ties; Table~\ref{tab:regr-rmse-xgb}), and on 3/15 with RF (1 tie; Table~\ref{tab:regr-rmse-rf}). In classification, it beats the black-box in 90.0\% of DNN cases (Table~\ref{tab:clf-acc-dnn}), 50.0\% for XGB (Table~\ref{tab:clf-acc-xgb}), and 60.0\% for RF (Table~\ref{tab:clf-acc-rf}).
+
+Overall, \method{} outperforms or matches the corresponding GAM in 219 out of 225 cases (97.3\%) and surpasses the black-box in 40 out of 75 cases (53.3\%). The rare cases where \method{} does not improve over the GAM occur in both regression and classification tasks and almost always correspond to scenarios where the GAM itself performs as well as or better than the black-box. These cases suggest that the underlying function is already well captured by global additive effects, leaving little room for further refinement through regional modeling. 
+
+\begin{table}[htbp]
+\caption{RMSE Score for Regression Datasets, DNN}
+\label{tab:regr-rmse-dnn}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{2}{c}{\textbf{\method{} - NAM}} & \multicolumn{2}{c}{\textbf{\method{} - EBM}} & \multicolumn{2}{c}{\textbf{\method{} - Spline}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11}
+& \textbf{DNN} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{PDP} & \textbf{RHALE} & \textbf{PDP} & \textbf{RHALE} & \textbf{PDP} & \textbf{RHALE} \\
+\midrule
+Bike Sharing & $42.952 \text{\scriptsize$\pm$1.460}$ & $101.968 \text{\scriptsize$\pm$1.309}$ & $100.211 \text{\scriptsize$\pm$1.010}$ & $100.876 \text{\scriptsize$\pm$0.868}$ & $63.034 \text{\scriptsize$\pm$0.883}$ & $64.941 \text{\scriptsize$\pm$2.566}$ & $58.444 \text{\scriptsize$\pm$1.637}$ & $60.966 \text{\scriptsize$\pm$2.983}$ & $59.868 \text{\scriptsize$\pm$1.564}$ & $62.108 \text{\scriptsize$\pm$2.989}$ \\
+California Housing & $0.519 \text{\scriptsize$\pm$0.017}$ & $0.611 \text{\scriptsize$\pm$0.011}$ & $0.554 \text{\scriptsize$\pm$0.008}$ & $0.632 \text{\scriptsize$\pm$0.009}$ & $0.580 \text{\scriptsize$\pm$0.012}$ & $0.591 \text{\scriptsize$\pm$0.016}$ & $0.522 \text{\scriptsize$\pm$0.010}$ & $0.526 \text{\scriptsize$\pm$0.009}$ & $0.593 \text{\scriptsize$\pm$0.018}$ & $0.597 \text{\scriptsize$\pm$0.006}$ \\
+Parkinsons Motor & $3.654 \text{\scriptsize$\pm$0.162}$ & $6.112 \text{\scriptsize$\pm$0.158}$ & $4.204 \text{\scriptsize$\pm$0.087}$ & $6.027 \text{\scriptsize$\pm$0.070}$ & $4.220 \text{\scriptsize$\pm$0.192}$ & $5.303 \text{\scriptsize$\pm$0.312}$ & $2.681 \text{\scriptsize$\pm$0.105}$ & $3.658 \text{\scriptsize$\pm$0.324}$ & $4.149 \text{\scriptsize$\pm$0.211}$ & $5.318 \text{\scriptsize$\pm$0.430}$ \\
+Parkinsons Total & $5.139 \text{\scriptsize$\pm$0.102}$ & $7.897 \text{\scriptsize$\pm$0.102}$ & $4.847 \text{\scriptsize$\pm$0.107}$ & $7.519 \text{\scriptsize$\pm$0.072}$ & $5.456 \text{\scriptsize$\pm$0.182}$ & $6.776 \text{\scriptsize$\pm$0.381}$ & $3.587 \text{\scriptsize$\pm$0.030}$ & $4.319 \text{\scriptsize$\pm$0.222}$ & $5.408 \text{\scriptsize$\pm$0.365}$ & $6.827 \text{\scriptsize$\pm$0.209}$ \\
+Seoul Bike & $244.967 \text{\scriptsize$\pm$5.081}$ & $320.225 \text{\scriptsize$\pm$4.377}$ & $303.685 \text{\scriptsize$\pm$3.855}$ & $302.020 \text{\scriptsize$\pm$4.701}$ & $269.277 \text{\scriptsize$\pm$6.414}$ & $273.241 \text{\scriptsize$\pm$8.379}$ & $249.457 \text{\scriptsize$\pm$2.407}$ & $245.880 \text{\scriptsize$\pm$5.153}$ & $246.855 \text{\scriptsize$\pm$3.936}$ & $243.926 \text{\scriptsize$\pm$4.433}$ \\
+Wine & $0.700 \text{\scriptsize$\pm$0.015}$ & $0.719 \text{\scriptsize$\pm$0.009}$ & $0.703 \text{\scriptsize$\pm$0.012}$ & $0.736 \text{\scriptsize$\pm$0.039}$ & $0.712 \text{\scriptsize$\pm$0.005}$ & $0.711 \text{\scriptsize$\pm$0.012}$ & $0.695 \text{\scriptsize$\pm$0.011}$ & $0.695 \text{\scriptsize$\pm$0.012}$ & $0.729 \text{\scriptsize$\pm$0.027}$ & $0.734 \text{\scriptsize$\pm$0.035}$ \\
+Energy & $77.139 \text{\scriptsize$\pm$2.916}$ & $89.799 \text{\scriptsize$\pm$2.665}$ & $85.225 \text{\scriptsize$\pm$2.489}$ & $86.498 \text{\scriptsize$\pm$2.384}$ & $89.304 \text{\scriptsize$\pm$2.480}$ & $88.600 \text{\scriptsize$\pm$2.179}$ & $84.347 \text{\scriptsize$\pm$2.358}$ & $83.972 \text{\scriptsize$\pm$2.557}$ & $84.929 \text{\scriptsize$\pm$1.868}$ & $83.526 \text{\scriptsize$\pm$2.653}$ \\
+CCPP & $3.916 \text{\scriptsize$\pm$0.079}$ & $4.213 \text{\scriptsize$\pm$0.050}$ & $3.435 \text{\scriptsize$\pm$0.076}$ & $4.144 \text{\scriptsize$\pm$0.054}$ & $4.205 \text{\scriptsize$\pm$0.067}$ & $4.188 \text{\scriptsize$\pm$0.079}$ & $3.427 \text{\scriptsize$\pm$0.058}$ & $3.379 \text{\scriptsize$\pm$0.083}$ & $3.995 \text{\scriptsize$\pm$0.061}$ & $4.006 \text{\scriptsize$\pm$0.058}$ \\
+Electrical & $0.051 \text{\scriptsize$\pm$0.009}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.095 \text{\scriptsize$\pm$0.005}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.012 \text{\scriptsize$\pm$0.007}$ & $0.094 \text{\scriptsize$\pm$0.005}$ & $0.088 \text{\scriptsize$\pm$0.003}$ \\
+Elevators & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.003 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ \\
+No2 & $0.522 \text{\scriptsize$\pm$0.012}$ & $0.503 \text{\scriptsize$\pm$0.021}$ & $0.492 \text{\scriptsize$\pm$0.034}$ & $0.480 \text{\scriptsize$\pm$0.032}$ & $0.507 \text{\scriptsize$\pm$0.016}$ & $0.501 \text{\scriptsize$\pm$0.025}$ & $0.492 \text{\scriptsize$\pm$0.030}$ & $0.498 \text{\scriptsize$\pm$0.034}$ & $0.485 \text{\scriptsize$\pm$0.028}$ & $0.492 \text{\scriptsize$\pm$0.033}$ \\
+Sensory & $0.522 \text{\scriptsize$\pm$0.022}$ & $0.483 \text{\scriptsize$\pm$0.014}$ & $0.477 \text{\scriptsize$\pm$0.009}$ & $0.482 \text{\scriptsize$\pm$0.012}$ & $0.461 \text{\scriptsize$\pm$0.025}$ & $0.449 \text{\scriptsize$\pm$0.019}$ & $0.447 \text{\scriptsize$\pm$0.021}$ & $0.444 \text{\scriptsize$\pm$0.012}$ & $0.453 \text{\scriptsize$\pm$0.025}$ & $0.446 \text{\scriptsize$\pm$0.020}$ \\
+Airfoil & $2.131 \text{\scriptsize$\pm$0.131}$ & $4.801 \text{\scriptsize$\pm$0.198}$ & $4.565 \text{\scriptsize$\pm$0.148}$ & $4.542 \text{\scriptsize$\pm$0.121}$ & $3.275 \text{\scriptsize$\pm$0.196}$ & $3.143 \text{\scriptsize$\pm$0.150}$ & $2.647 \text{\scriptsize$\pm$0.194}$ & $2.449 \text{\scriptsize$\pm$0.227}$ & $2.697 \text{\scriptsize$\pm$0.161}$ & $2.588 \text{\scriptsize$\pm$0.248}$ \\
+Skill Craft & $1.231 \text{\scriptsize$\pm$0.195}$ & $0.925 \text{\scriptsize$\pm$0.025}$ & $0.901 \text{\scriptsize$\pm$0.021}$ & $2.515 \text{\scriptsize$\pm$3.092}$ & $0.923 \text{\scriptsize$\pm$0.028}$ & $0.918 \text{\scriptsize$\pm$0.023}$ & $0.901 \text{\scriptsize$\pm$0.021}$ & $0.905 \text{\scriptsize$\pm$0.018}$ & $1.652 \text{\scriptsize$\pm$1.323}$ & $2.345 \text{\scriptsize$\pm$2.792}$ \\
+Ailerons & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.001 \text{\scriptsize$\pm$0.001}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[htbp]
+\caption{RMSE Score for Regression Datasets, XGB}
+\label{tab:regr-rmse-xgb}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{3}{c}{\textbf{\method{}}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-8} 
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline}  \\
+\midrule
+Bike Sharing & $39.346 \text{\scriptsize$\pm$1.375}$ & $101.968 \text{\scriptsize$\pm$1.309}$ & $100.211 \text{\scriptsize$\pm$1.010}$ & $100.876 \text{\scriptsize$\pm$0.868}$ & $59.732 \text{\scriptsize$\pm$1.414}$ & $55.667 \text{\scriptsize$\pm$1.220}$ & $56.656 \text{\scriptsize$\pm$1.320}$ \\
+California Housing & $0.454 \text{\scriptsize$\pm$0.010}$ & $0.611 \text{\scriptsize$\pm$0.011}$ & $0.554 \text{\scriptsize$\pm$0.008}$ & $0.632 \text{\scriptsize$\pm$0.009}$ & $0.566 \text{\scriptsize$\pm$0.010}$ & $0.511 \text{\scriptsize$\pm$0.010}$ & $0.594 \text{\scriptsize$\pm$0.014}$ \\
+Parkinsons Motor & $1.443 \text{\scriptsize$\pm$0.094}$ & $6.112 \text{\scriptsize$\pm$0.158}$ & $4.204 \text{\scriptsize$\pm$0.087}$ & $6.027 \text{\scriptsize$\pm$0.070}$ & $4.574 \text{\scriptsize$\pm$0.137}$ & $2.243 \text{\scriptsize$\pm$0.126}$ & $4.432 \text{\scriptsize$\pm$0.185}$ \\
+Parkinsons Total & $1.863 \text{\scriptsize$\pm$0.079}$ & $7.897 \text{\scriptsize$\pm$0.102}$ & $4.847 \text{\scriptsize$\pm$0.107}$ & $7.519 \text{\scriptsize$\pm$0.072}$ & $6.109 \text{\scriptsize$\pm$0.361}$ & $2.968 \text{\scriptsize$\pm$0.089}$ & $5.638 \text{\scriptsize$\pm$0.288}$ \\
+Seoul Bike & $209.587 \text{\scriptsize$\pm$3.474}$ & $320.225 \text{\scriptsize$\pm$4.377}$ & $303.685 \text{\scriptsize$\pm$3.855}$ & $302.020 \text{\scriptsize$\pm$4.701}$ & $270.365 \text{\scriptsize$\pm$7.049}$ & $238.912 \text{\scriptsize$\pm$1.643}$ & $237.705 \text{\scriptsize$\pm$2.658}$ \\
+Wine & $0.622 \text{\scriptsize$\pm$0.012}$ & $0.719 \text{\scriptsize$\pm$0.009}$ & $0.703 \text{\scriptsize$\pm$0.012}$ & $0.736 \text{\scriptsize$\pm$0.039}$ & $0.703 \text{\scriptsize$\pm$0.011}$ & $0.693 \text{\scriptsize$\pm$0.016}$ & $0.737 \text{\scriptsize$\pm$0.043}$ \\
+Energy & $67.967 \text{\scriptsize$\pm$2.579}$ & $89.799 \text{\scriptsize$\pm$2.665}$ & $85.225 \text{\scriptsize$\pm$2.489}$ & $86.498 \text{\scriptsize$\pm$2.384}$ & $87.416 \text{\scriptsize$\pm$2.894}$ & $83.088 \text{\scriptsize$\pm$1.974}$ & $82.747 \text{\scriptsize$\pm$2.421}$ \\
+CCPP & $3.086 \text{\scriptsize$\pm$0.090}$ & $4.213 \text{\scriptsize$\pm$0.050}$ & $3.435 \text{\scriptsize$\pm$0.076}$ & $4.144 \text{\scriptsize$\pm$0.054}$ & $4.171 \text{\scriptsize$\pm$0.042}$ & $3.419 \text{\scriptsize$\pm$0.066}$ & $4.039 \text{\scriptsize$\pm$0.036}$ \\
+Electrical & $0.037 \text{\scriptsize$\pm$0.015}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.095 \text{\scriptsize$\pm$0.005}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.095 \text{\scriptsize$\pm$0.005}$ \\
+Elevators & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.003 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ \\
+No2 & $0.473 \text{\scriptsize$\pm$0.026}$ & $0.503 \text{\scriptsize$\pm$0.021}$ & $0.492 \text{\scriptsize$\pm$0.034}$ & $0.480 \text{\scriptsize$\pm$0.032}$ & $0.498 \text{\scriptsize$\pm$0.022}$ & $0.492 \text{\scriptsize$\pm$0.036}$ & $0.479 \text{\scriptsize$\pm$0.031}$ \\
+Sensory & $0.508 \text{\scriptsize$\pm$0.028}$ & $0.483 \text{\scriptsize$\pm$0.014}$ & $0.477 \text{\scriptsize$\pm$0.009}$ & $0.482 \text{\scriptsize$\pm$0.012}$ & $0.462 \text{\scriptsize$\pm$0.016}$ & $0.450 \text{\scriptsize$\pm$0.020}$ & $0.451 \text{\scriptsize$\pm$0.029}$ \\
+Airfoil & $1.544 \text{\scriptsize$\pm$0.100}$ & $4.801 \text{\scriptsize$\pm$0.198}$ & $4.565 \text{\scriptsize$\pm$0.148}$ & $4.542 \text{\scriptsize$\pm$0.121}$ & $3.146 \text{\scriptsize$\pm$0.137}$ & $2.503 \text{\scriptsize$\pm$0.147}$ & $2.582 \text{\scriptsize$\pm$0.130}$ \\
+Skill Craft & $0.938 \text{\scriptsize$\pm$0.019}$ & $0.925 \text{\scriptsize$\pm$0.025}$ & $0.901 \text{\scriptsize$\pm$0.021}$ & $2.515 \text{\scriptsize$\pm$3.092}$ & $0.925 \text{\scriptsize$\pm$0.025}$ & $0.901 \text{\scriptsize$\pm$0.021}$ & $2.167 \text{\scriptsize$\pm$2.261}$ \\
+Ailerons & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[!t]
+\caption{RMSE Score for Regression Datasets, RF}
+\label{tab:regr-rmse-rf}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{3}{c}{\textbf{\method{}}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-8} 
+& \textbf{RF} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline}  \\
+\midrule
+Bike Sharing & $43.247 \text{\scriptsize$\pm$1.037}$ & $101.968 \text{\scriptsize$\pm$1.309}$ & $100.211 \text{\scriptsize$\pm$1.010}$ & $100.876 \text{\scriptsize$\pm$0.868}$ & $61.174 \text{\scriptsize$\pm$1.544}$ & $57.158 \text{\scriptsize$\pm$1.288}$ & $57.823 \text{\scriptsize$\pm$1.393}$ \\
+California Housing & $0.502 \text{\scriptsize$\pm$0.012}$ & $0.611 \text{\scriptsize$\pm$0.011}$ & $0.554 \text{\scriptsize$\pm$0.008}$ & $0.632 \text{\scriptsize$\pm$0.009}$ & $0.570 \text{\scriptsize$\pm$0.015}$ & $0.515 \text{\scriptsize$\pm$0.012}$ & $0.611 \text{\scriptsize$\pm$0.025}$ \\
+Parkinsons Motor & $1.477 \text{\scriptsize$\pm$0.155}$ & $6.112 \text{\scriptsize$\pm$0.158}$ & $4.204 \text{\scriptsize$\pm$0.087}$ & $6.027 \text{\scriptsize$\pm$0.070}$ & $4.515 \text{\scriptsize$\pm$0.094}$ & $2.230 \text{\scriptsize$\pm$0.081}$ & $4.349 \text{\scriptsize$\pm$0.061}$ \\
+Parkinsons Total & $1.869 \text{\scriptsize$\pm$0.243}$ & $7.897 \text{\scriptsize$\pm$0.102}$ & $4.847 \text{\scriptsize$\pm$0.107}$ & $7.519 \text{\scriptsize$\pm$0.072}$ & $5.761 \text{\scriptsize$\pm$0.259}$ & $3.044 \text{\scriptsize$\pm$0.068}$ & $5.393 \text{\scriptsize$\pm$0.162}$ \\
+Seoul Bike & $225.572 \text{\scriptsize$\pm$3.086}$ & $320.225 \text{\scriptsize$\pm$4.377}$ & $303.685 \text{\scriptsize$\pm$3.855}$ & $302.020 \text{\scriptsize$\pm$4.701}$ & $270.514 \text{\scriptsize$\pm$8.146}$ & $243.910 \text{\scriptsize$\pm$2.580}$ & $240.471 \text{\scriptsize$\pm$4.337}$ \\
+Wine & $0.618 \text{\scriptsize$\pm$0.012}$ & $0.719 \text{\scriptsize$\pm$0.009}$ & $0.703 \text{\scriptsize$\pm$0.012}$ & $0.736 \text{\scriptsize$\pm$0.039}$ & $0.708 \text{\scriptsize$\pm$0.006}$ & $0.691 \text{\scriptsize$\pm$0.011}$ & $0.726 \text{\scriptsize$\pm$0.036}$ \\
+Energy & $69.406 \text{\scriptsize$\pm$2.781}$ & $89.799 \text{\scriptsize$\pm$2.665}$ & $85.225 \text{\scriptsize$\pm$2.489}$ & $86.498 \text{\scriptsize$\pm$2.384}$ & $88.448 \text{\scriptsize$\pm$2.607}$ & $84.741 \text{\scriptsize$\pm$2.520}$ & $84.690 \text{\scriptsize$\pm$2.546}$ \\
+CCPP & $3.378 \text{\scriptsize$\pm$0.078}$ & $4.213 \text{\scriptsize$\pm$0.050}$ & $3.435 \text{\scriptsize$\pm$0.076}$ & $4.144 \text{\scriptsize$\pm$0.054}$ & $4.129 \text{\scriptsize$\pm$0.057}$ & $3.422 \text{\scriptsize$\pm$0.112}$ & $4.029 \text{\scriptsize$\pm$0.052}$ \\
+Electrical & $0.009 \text{\scriptsize$\pm$0.009}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.095 \text{\scriptsize$\pm$0.005}$ & $0.040 \text{\scriptsize$\pm$0.005}$ & $0.018 \text{\scriptsize$\pm$0.011}$ & $0.095 \text{\scriptsize$\pm$0.005}$ \\
+Elevators & $0.003 \text{\scriptsize$\pm$0.000}$ & $0.003 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ & $0.002 \text{\scriptsize$\pm$0.000}$ \\
+No2 & $0.466 \text{\scriptsize$\pm$0.033}$ & $0.503 \text{\scriptsize$\pm$0.021}$ & $0.492 \text{\scriptsize$\pm$0.034}$ & $0.480 \text{\scriptsize$\pm$0.032}$ & $0.481 \text{\scriptsize$\pm$0.023}$ & $0.482 \text{\scriptsize$\pm$0.031}$ & $0.484 \text{\scriptsize$\pm$0.029}$ \\
+Sensory & $0.446 \text{\scriptsize$\pm$0.007}$ & $0.483 \text{\scriptsize$\pm$0.014}$ & $0.477 \text{\scriptsize$\pm$0.009}$ & $0.482 \text{\scriptsize$\pm$0.012}$ & $0.451 \text{\scriptsize$\pm$0.022}$ & $0.439 \text{\scriptsize$\pm$0.020}$ & $0.442 \text{\scriptsize$\pm$0.025}$ \\
+Airfoil & $2.196 \text{\scriptsize$\pm$0.170}$ & $4.801 \text{\scriptsize$\pm$0.198}$ & $4.565 \text{\scriptsize$\pm$0.148}$ & $4.542 \text{\scriptsize$\pm$0.121}$ & $3.073 \text{\scriptsize$\pm$0.143}$ & $2.533 \text{\scriptsize$\pm$0.137}$ & $2.627 \text{\scriptsize$\pm$0.108}$ \\
+Skill Craft & $0.916 \text{\scriptsize$\pm$0.019}$ & $0.925 \text{\scriptsize$\pm$0.025}$ & $0.901 \text{\scriptsize$\pm$0.021}$ & $2.515 \text{\scriptsize$\pm$3.092}$ & $0.926 \text{\scriptsize$\pm$0.037}$ & $0.901 \text{\scriptsize$\pm$0.022}$ & $2.320 \text{\scriptsize$\pm$2.696}$ \\
+Ailerons & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ & $0.0002 \text{\scriptsize$\pm$0.000}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[!t]
+\caption{Accuracy Score for Classification Datasets, DNN}
+\label{tab:clf-acc-dnn}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{2}{c}{\textbf{\method{} - NAM}} & \multicolumn{2}{c}{\textbf{\method{} - EBM}} & \multicolumn{2}{c}{\textbf{\method{} - Spline}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11}
+& \textbf{DNN} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{PDP} & \textbf{RHALE} & \textbf{PDP} & \textbf{RHALE} & \textbf{PDP} & \textbf{RHALE} \\
+\midrule
+Adult & $0.849 \text{\scriptsize$\pm$0.002}$ & $0.851 \text{\scriptsize$\pm$0.002}$ & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.856 \text{\scriptsize$\pm$0.001}$ & $0.853 \text{\scriptsize$\pm$0.001}$ & $0.854 \text{\scriptsize$\pm$0.003}$ & $0.870 \text{\scriptsize$\pm$0.003}$ & $0.871 \text{\scriptsize$\pm$0.003}$ & $0.857 \text{\scriptsize$\pm$0.003}$ & $0.859 \text{\scriptsize$\pm$0.003}$ \\
+COMPAS & $0.682 \text{\scriptsize$\pm$0.011}$ & $0.682 \text{\scriptsize$\pm$0.016}$ & $0.681 \text{\scriptsize$\pm$0.012}$ & $0.685 \text{\scriptsize$\pm$0.012}$ & $0.682 \text{\scriptsize$\pm$0.007}$ & $0.681 \text{\scriptsize$\pm$0.014}$ & $0.683 \text{\scriptsize$\pm$0.011}$ & $0.679 \text{\scriptsize$\pm$0.012}$ & $0.683 \text{\scriptsize$\pm$0.015}$ & $0.683 \text{\scriptsize$\pm$0.011}$ \\
+HELOC & $0.721 \text{\scriptsize$\pm$0.009}$ & $0.723 \text{\scriptsize$\pm$0.011}$ & $0.728 \text{\scriptsize$\pm$0.014}$ & $0.726 \text{\scriptsize$\pm$0.010}$ & $0.723 \text{\scriptsize$\pm$0.011}$ & $0.723 \text{\scriptsize$\pm$0.013}$ & $0.727 \text{\scriptsize$\pm$0.015}$ & $0.728 \text{\scriptsize$\pm$0.014}$ & $0.721 \text{\scriptsize$\pm$0.012}$ & $0.726 \text{\scriptsize$\pm$0.011}$ \\
+MIMIC2 & $0.885 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.887 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.002}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ \\
+Appendicitis & $0.877 \text{\scriptsize$\pm$0.072}$ & $0.848 \text{\scriptsize$\pm$0.056}$ & $0.877 \text{\scriptsize$\pm$0.077}$ & $0.887 \text{\scriptsize$\pm$0.064}$ & $0.839 \text{\scriptsize$\pm$0.025}$ & $0.848 \text{\scriptsize$\pm$0.056}$ & $0.897 \text{\scriptsize$\pm$0.055}$ & $0.877 \text{\scriptsize$\pm$0.077}$ & $0.887 \text{\scriptsize$\pm$0.064}$ & $0.887 \text{\scriptsize$\pm$0.064}$ \\
+Phoneme & $0.815 \text{\scriptsize$\pm$0.009}$ & $0.808 \text{\scriptsize$\pm$0.002}$ & $0.821 \text{\scriptsize$\pm$0.007}$ & $0.832 \text{\scriptsize$\pm$0.006}$ & $0.839 \text{\scriptsize$\pm$0.012}$ & $0.834 \text{\scriptsize$\pm$0.008}$ & $0.858 \text{\scriptsize$\pm$0.010}$ & $0.856 \text{\scriptsize$\pm$0.008}$ & $0.855 \text{\scriptsize$\pm$0.009}$ & $0.852 \text{\scriptsize$\pm$0.006}$ \\
+SPECTF & $0.814 \text{\scriptsize$\pm$0.016}$ & $0.839 \text{\scriptsize$\pm$0.030}$ & $0.894 \text{\scriptsize$\pm$0.015}$ & $0.845 \text{\scriptsize$\pm$0.040}$ & $0.848 \text{\scriptsize$\pm$0.036}$ & $0.882 \text{\scriptsize$\pm$0.025}$ & $0.885 \text{\scriptsize$\pm$0.021}$ & $0.903 \text{\scriptsize$\pm$0.014}$ & $0.848 \text{\scriptsize$\pm$0.032}$ & $0.782 \text{\scriptsize$\pm$0.036}$ \\
+Magic & $0.870 \text{\scriptsize$\pm$0.004}$ & $0.850 \text{\scriptsize$\pm$0.006}$ & $0.857 \text{\scriptsize$\pm$0.005}$ & $0.855 \text{\scriptsize$\pm$0.004}$ & $0.860 \text{\scriptsize$\pm$0.007}$ & $0.858 \text{\scriptsize$\pm$0.004}$ & $0.862 \text{\scriptsize$\pm$0.006}$ & $0.860 \text{\scriptsize$\pm$0.006}$ & $0.865 \text{\scriptsize$\pm$0.005}$ & $0.860 \text{\scriptsize$\pm$0.005}$ \\
+Bank & $0.903 \text{\scriptsize$\pm$0.003}$ & $0.901 \text{\scriptsize$\pm$0.003}$ & $0.902 \text{\scriptsize$\pm$0.002}$ & $0.903 \text{\scriptsize$\pm$0.002}$ & $0.902 \text{\scriptsize$\pm$0.001}$ & $0.903 \text{\scriptsize$\pm$0.005}$ & $0.905 \text{\scriptsize$\pm$0.003}$ & $0.904 \text{\scriptsize$\pm$0.003}$ & $0.906 \text{\scriptsize$\pm$0.003}$ & $0.905 \text{\scriptsize$\pm$0.005}$ \\
+Churn & $0.938 \text{\scriptsize$\pm$0.005}$ & $0.885 \text{\scriptsize$\pm$0.009}$ & $0.886 \text{\scriptsize$\pm$0.005}$ & $0.889 \text{\scriptsize$\pm$0.005}$ & $0.957 \text{\scriptsize$\pm$0.010}$ & $0.949 \text{\scriptsize$\pm$0.004}$ & $0.953 \text{\scriptsize$\pm$0.006}$ & $0.946 \text{\scriptsize$\pm$0.006}$ & $0.959 \text{\scriptsize$\pm$0.006}$ & $0.941 \text{\scriptsize$\pm$0.007}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[!t]
+\caption{Accuracy Score for Classification Datasets, XGB}
+\label{tab:clf-acc-xgb}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{3}{c}{\textbf{\method{}}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-8} 
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline}  \\
+\midrule
+Adult & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.851 \text{\scriptsize$\pm$0.002}$ & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.856 \text{\scriptsize$\pm$0.001}$ & $0.853 \text{\scriptsize$\pm$0.002}$ & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.858 \text{\scriptsize$\pm$0.001}$ \\
+COMPAS & $0.661 \text{\scriptsize$\pm$0.007}$ & $0.682 \text{\scriptsize$\pm$0.016}$ & $0.681 \text{\scriptsize$\pm$0.012}$ & $0.685 \text{\scriptsize$\pm$0.012}$ & $0.686 \text{\scriptsize$\pm$0.014}$ & $0.684 \text{\scriptsize$\pm$0.013}$ & $0.686 \text{\scriptsize$\pm$0.016}$ \\
+HELOC & $0.717 \text{\scriptsize$\pm$0.013}$ & $0.723 \text{\scriptsize$\pm$0.011}$ & $0.728 \text{\scriptsize$\pm$0.014}$ & $0.726 \text{\scriptsize$\pm$0.010}$ & $0.724 \text{\scriptsize$\pm$0.011}$ & $0.728 \text{\scriptsize$\pm$0.012}$ & $0.726 \text{\scriptsize$\pm$0.011}$ \\
+MIMIC2 & $0.890 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ \\
+Appendicitis & $0.868 \text{\scriptsize$\pm$0.069}$ & $0.848 \text{\scriptsize$\pm$0.056}$ & $0.877 \text{\scriptsize$\pm$0.077}$ & $0.887 \text{\scriptsize$\pm$0.064}$ & $0.868 \text{\scriptsize$\pm$0.069}$ & $0.878 \text{\scriptsize$\pm$0.063}$ & $0.878 \text{\scriptsize$\pm$0.063}$ \\
+Phoneme & $0.898 \text{\scriptsize$\pm$0.006}$ & $0.808 \text{\scriptsize$\pm$0.002}$ & $0.821 \text{\scriptsize$\pm$0.007}$ & $0.832 \text{\scriptsize$\pm$0.006}$ & $0.843 \text{\scriptsize$\pm$0.006}$ & $0.861 \text{\scriptsize$\pm$0.011}$ & $0.860 \text{\scriptsize$\pm$0.010}$ \\
+SPECTF & $0.862 \text{\scriptsize$\pm$0.029}$ & $0.839 \text{\scriptsize$\pm$0.030}$ & $0.894 \text{\scriptsize$\pm$0.015}$ & $0.845 \text{\scriptsize$\pm$0.040}$ & $0.857 \text{\scriptsize$\pm$0.043}$ & $0.894 \text{\scriptsize$\pm$0.015}$ & $0.845 \text{\scriptsize$\pm$0.040}$ \\
+Magic & $0.885 \text{\scriptsize$\pm$0.004}$ & $0.850 \text{\scriptsize$\pm$0.006}$ & $0.857 \text{\scriptsize$\pm$0.005}$ & $0.855 \text{\scriptsize$\pm$0.004}$ & $0.863 \text{\scriptsize$\pm$0.007}$ & $0.864 \text{\scriptsize$\pm$0.004}$ & $0.868 \text{\scriptsize$\pm$0.006}$ \\
+Bank & $0.908 \text{\scriptsize$\pm$0.003}$ & $0.901 \text{\scriptsize$\pm$0.003}$ & $0.902 \text{\scriptsize$\pm$0.002}$ & $0.903 \text{\scriptsize$\pm$0.002}$ & $0.903 \text{\scriptsize$\pm$0.002}$ & $0.905 \text{\scriptsize$\pm$0.002}$ & $0.907 \text{\scriptsize$\pm$0.002}$ \\
+Churn & $0.958 \text{\scriptsize$\pm$0.004}$ & $0.885 \text{\scriptsize$\pm$0.009}$ & $0.886 \text{\scriptsize$\pm$0.005}$ & $0.889 \text{\scriptsize$\pm$0.005}$ & $0.954 \text{\scriptsize$\pm$0.007}$ & $0.946 \text{\scriptsize$\pm$0.003}$ & $0.953 \text{\scriptsize$\pm$0.008}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Accuracy Score for Classification Datasets, RF}
+\label{tab:clf-acc-rf}
+\centering
+\small 
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{3}{c}{\textbf{GAM}} & \multicolumn{3}{c}{\textbf{\method{}}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}  \cmidrule(lr){6-8} 
+& \textbf{RF} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline} & \textbf{NAM} & \textbf{EBM} & \textbf{Spline}  \\
+\midrule
+Adult & $0.843 \text{\scriptsize$\pm$0.001}$ & $0.851 \text{\scriptsize$\pm$0.002}$ & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.856 \text{\scriptsize$\pm$0.001}$ & $0.853 \text{\scriptsize$\pm$0.002}$ & $0.871 \text{\scriptsize$\pm$0.003}$ & $0.859 \text{\scriptsize$\pm$0.001}$ \\
+COMPAS & $0.662 \text{\scriptsize$\pm$0.016}$ & $0.682 \text{\scriptsize$\pm$0.016}$ & $0.681 \text{\scriptsize$\pm$0.012}$ & $0.685 \text{\scriptsize$\pm$0.012}$ & $0.682 \text{\scriptsize$\pm$0.016}$ & $0.683 \text{\scriptsize$\pm$0.012}$ & $0.685 \text{\scriptsize$\pm$0.012}$ \\
+HELOC & $0.724 \text{\scriptsize$\pm$0.014}$ & $0.723 \text{\scriptsize$\pm$0.011}$ & $0.728 \text{\scriptsize$\pm$0.014}$ & $0.726 \text{\scriptsize$\pm$0.010}$ & $0.723 \text{\scriptsize$\pm$0.014}$ & $0.728 \text{\scriptsize$\pm$0.014}$ & $0.726 \text{\scriptsize$\pm$0.010}$ \\
+MIMIC2 & $0.888 \text{\scriptsize$\pm$0.002}$ & $0.886 \text{\scriptsize$\pm$0.001}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.002}$ & $0.887 \text{\scriptsize$\pm$0.002}$ & $0.886 \text{\scriptsize$\pm$0.003}$ \\
+Appendicitis & $0.859 \text{\scriptsize$\pm$0.064}$ & $0.848 \text{\scriptsize$\pm$0.056}$ & $0.877 \text{\scriptsize$\pm$0.077}$ & $0.887 \text{\scriptsize$\pm$0.064}$ & $0.848 \text{\scriptsize$\pm$0.056}$ & $0.877 \text{\scriptsize$\pm$0.077}$ & $0.887 \text{\scriptsize$\pm$0.064}$ \\
+Phoneme & $0.898 \text{\scriptsize$\pm$0.005}$ & $0.808 \text{\scriptsize$\pm$0.002}$ & $0.821 \text{\scriptsize$\pm$0.007}$ & $0.832 \text{\scriptsize$\pm$0.006}$ & $0.838 \text{\scriptsize$\pm$0.005}$ & $0.859 \text{\scriptsize$\pm$0.005}$ & $0.859 \text{\scriptsize$\pm$0.009}$ \\
+SPECTF & $0.877 \text{\scriptsize$\pm$0.027}$ & $0.839 \text{\scriptsize$\pm$0.030}$ & $0.894 \text{\scriptsize$\pm$0.015}$ & $0.845 \text{\scriptsize$\pm$0.040}$ & $0.848 \text{\scriptsize$\pm$0.026}$ & $0.894 \text{\scriptsize$\pm$0.018}$ & $0.842 \text{\scriptsize$\pm$0.048}$ \\
+Magic & $0.878 \text{\scriptsize$\pm$0.004}$ & $0.850 \text{\scriptsize$\pm$0.006}$ & $0.857 \text{\scriptsize$\pm$0.005}$ & $0.855 \text{\scriptsize$\pm$0.004}$ & $0.861 \text{\scriptsize$\pm$0.004}$ & $0.864 \text{\scriptsize$\pm$0.004}$ & $0.866 \text{\scriptsize$\pm$0.005}$ \\
+Bank & $0.901 \text{\scriptsize$\pm$0.004}$ & $0.901 \text{\scriptsize$\pm$0.003}$ & $0.902 \text{\scriptsize$\pm$0.002}$ & $0.903 \text{\scriptsize$\pm$0.002}$ & $0.905 \text{\scriptsize$\pm$0.003}$ & $0.907 \text{\scriptsize$\pm$0.002}$ & $0.907 \text{\scriptsize$\pm$0.002}$ \\
+Churn & $0.957 \text{\scriptsize$\pm$0.005}$ & $0.885 \text{\scriptsize$\pm$0.009}$ & $0.886 \text{\scriptsize$\pm$0.005}$ & $0.889 \text{\scriptsize$\pm$0.005}$ & $0.952 \text{\scriptsize$\pm$0.005}$ & $0.951 \text{\scriptsize$\pm$0.007}$ & $0.955 \text{\scriptsize$\pm$0.006}$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\newpage
+
+\section{User Study}\label{app:user-study}
+
+\paragraph{Study Overview.}
+We conducted a within-subjects user study ($N=25$) to evaluate the practical interpretability of CALMs. Participants ranged from novices to experts in machine learning and data analysis, and were asked to estimate feature contributions for specific inputs and reason about how predictions change under feature perturbations. Participants were not financially compensated.
+
+\paragraph{Participant Expertise.}
+Participants self-reported their level of expertise using a 5-point scale ranging from no experience to expert.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/user_study_app/expertise_question.png}
+    \caption{Self-reported expertise question used to assess participant background.}
+    \label{fig:expertise}
+\end{figure}
+
+\paragraph{Interpretation Protocol.}
+Before starting the tasks, participants were provided with standardized instructions on how to interpret conditional feature plots. These instructions explained how to:
+(i) select the appropriate curve based on feature conditions,
+(ii) read feature contributions directly from the plot, and
+(iii) account for interaction-induced discontinuities when estimating changes.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/user_study_app/instructions.png}
+    \caption{Instruction panel provided to participants for interpreting conditional feature plots.}
+    \label{fig:instructions}
+\end{figure}
+
+\paragraph{Task Design.}
+Participants completed tasks targeting two aspects of interpretability: estimating feature contributions for specific inputs and reasoning about how predictions change under feature perturbations.
+
+\paragraph{Example Questions.}
+Figure~\ref{fig:question_contribution} shows a representative example of the questions used in the study. The full questionnaire is available at \url{https://forms.gle/tTippi5eJ6cZHrfy9}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/user_study_app/q_contribution.png}
+    \caption{Example question requiring estimation of feature contribution from a conditional plot.}
+    \label{fig:question_contribution}
+\end{figure}
+
+\paragraph{Evaluation Metrics.}
+We evaluate performance using three metrics: task accuracy (percentage of correct answers), accuracy on prediction change tasks, and user experience, measured via self-reported ease of use and confidence.
+
+\paragraph{Results.}
+Participants achieved an average validation accuracy of $83.2\%$ using CALM. On real-world tasks, CALM significantly outperformed heatmap-based representations in overall task performance ($54\%$ vs.\ $34\%$, $p < 0.05$), driven primarily by improvements in prediction change tasks ($40\%$ vs.\ $12\%$, $p < 0.05$).
+
+Participants also rated CALM as easier to use ($p < 0.01$) and more confidence-inducing ($p < 0.001$), indicating improved usability alongside stronger objective performance.
+
+\newpage

@@ -1,0 +1,171 @@
+\documentclass{article}
+
+\usepackage[main, final]{neurips_2026}
+
+\usepackage[utf8]{inputenc} %
+\usepackage[T1]{fontenc}    %
+\usepackage{hyperref}       %
+\usepackage{url}            %
+\usepackage{booktabs}       %
+\usepackage{placeins}       %
+\usepackage{amsfonts}       %
+\usepackage{nicefrac}       %
+\usepackage{microtype}      %
+\usepackage{xcolor}         %
+\usepackage{graphicx}
+\usepackage{subcaption}
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+\usepackage[capitalize,noabbrev]{cleveref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\usepackage[textsize=tiny]{todonotes}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\usepackage{pifont}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xspace}
+\newcount\phn
+\newcommand{\ph}[2]{\unskip\ {\color{red}\textbf{[#2]}}~{\color{red!20}\leaders\vrule height 6.5pt depth 2pt\hfill}\phn=1
+  \loop\ifnum\phn<#1 \advance\phn by 1 \hspace{0pt}{\color{red!20}\rule[-2pt]{\linewidth}{8.5pt}}\repeat}
+\usepackage{wrapfig}
+\usepackage{enumitem}
+
+\newtcolorbox{questionbox}[1][]{
+  breakable,
+  colback=gray!5,
+  colframe=black,
+  coltitle=black,
+  title=#1,
+  boxrule=0.5pt,
+  arc=2mm,
+  outer arc=2mm,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  fonttitle=\bfseries,
+  enhanced,
+  width=\textwidth,
+  colbacktitle=gray!20,  %
+}
+
+\newcommand{\xb}{\mathbf{x}}
+\newcommand{\xbi}{\mathbf{x}_{-i}}
+\newcommand{\xbj}{\mathbf{x}_{-j}}
+
+\newcommand{\gam}{GAM~}
+\newcommand{\gamm}{GA\textsuperscript{2}M}
+\newcommand{\gamms}{GA\textsuperscript{2}Ms}
+\newcommand{\method}{CALM}
+
+\newcommand{\question}[2]{
+    \noindent\textbf{#1} #2 \par\vspace{0.5em}
+}
+
+\newcommand{\answers}[1]{
+    \begin{tabular}{lllll}
+    #1
+    \end{tabular}
+    \vspace{1em}
+}
+
+\title{Interpretability-by-Design with Accurate Locally Additive Models and Conditional Feature Effects}
+
+\author{%
+  Vasilis Gkolemis$^{1,2}$ \quad
+  Loukas Kavouras$^{2}$ \quad
+  Dimitrios Kyriakopoulos$^{2}$ \\
+  \bfseries
+  Konstantinos Tsopelas$^{2}$ \quad
+  Dimitrios Rontogiannis$^{4}$ \quad
+  Giuseppe Casalicchio$^{5}$ \\
+  \bfseries
+  Theodore Dalamagas$^{2}$ \quad
+  Christos Diou$^{1,3}$ \\[0.5em]
+  $^{1}$Department of Informatics and Telematics, Harokopio University of Athens \\
+  $^{2}$IMSI, ATHENA RC \quad
+  $^{3}$Archimedes AI, ATHENA RC \quad
+  $^{4}$Max Planck ISS \quad
+  $^{5}$LMU Munich
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Generalized additive models (GAMs) offer high interpretability through independent univariate feature effects but underfit when interactions are present in data.
+GA$^2$Ms add selected pairwise interactions which improves accuracy, but sacrifices interpretability.
+We propose \emph{Conditionally Additive Local Models} (CALMs), a new model class that narrows this trade-off: it stays close to GAMs in interpretability and close to GA$^2$Ms in accuracy.
+CALMs allow multiple univariate shape functions per feature, each active in different regions of the input space.
+These regions are defined independently for each feature as simple logical conditions (thresholds) on the features it interacts with.
+As a result, effects remain locally additive while varying across subregions to capture interactions.
+We further propose a principled distillation-based training pipeline that identifies homogeneous regions with limited interactions and fits interpretable shape functions via region-aware backfitting.
+Experiments on diverse classification and regression tasks show that CALMs consistently outperform GAMs and achieve accuracy broadly comparable to GA$^2$Ms, while preserving the univariate auditability that GA$^2$Ms forfeit.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{introduction}
+
+\section{Background and Related Work}
+\label{sec:related-work}
+\input{related_work}
+
+\section{CALM: Conditionally Additive Local Model}
+\label{sec:ram}
+\input{model}
+
+\section{Empirical Evaluation}
+\label{sec:empirical-evaluation}
+\input{explanatory_example}
+
+\vspace{-0.5em}
+\subsection{Real-world datasets}
+\label{sec:real-datasets}
+\input{experiments}
+
+\vspace{-0.5em}
+\section{Conclusion}\label{sec:conclusion}
+\label{sec:limitations}
+\input{discussion}
+
+\begin{ack}
+The work leading to these results has been funded by the European Union under Grant Agreement No.~101289094 (project AIRIS). Views and opinions expressed are however those of the authors and do not necessarily reflect those of the European Union or the granting authority (HaDEA). Neither the European Union nor the granting authority can be held responsible for them.
+
+The research leading to this work has received funding from the European Union's Horizon Europe research and innovation program under Grant Agreement No:~101135826 (\href{https://aidapt.eu}{aidapt.eu}).
+\end{ack}
+
+\bibliography{bibliography}
+\bibliographystyle{plain}
+
+\appendix
+\input{appendix}
+
+\clearpage
+\input{checklist.tex}
+
+\end{document}

@@ -1,0 +1,8 @@
+# The same 20 bootstrap resamples for the GA²M: how stable are the pairs it picks.
+datasets: benchmark
+resampling: {kind: bootstrap, n: 20}
+arms:
+  eb2m: {method: ebm, params: {interactions: 0.9}, frozen: "EBM2_09_boot"}
+frozen:
+  - "results_t12_ebm_bootReg?_folds.csv"
+  - "results_t12_ebm_bootCls?_folds.csv"

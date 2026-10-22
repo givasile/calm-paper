@@ -1,0 +1,7 @@
+# The GA²M column of Tables 1-2 and its pair counts: an EBM with interpret's
+# default number of pairwise interactions (0.9 x the number of features).
+datasets: benchmark
+resampling: {kind: kfold, n: 5}
+arms:
+  eb2m: {method: ebm, params: {interactions: 0.9}, frozen: "EBM2_09"}
+frozen: "results_t12_ebm_fold*_folds.csv"

@@ -1,0 +1,147 @@
+{
+ "Adult": {
+  "rows": 45222,
+  "columns": 13,
+  "sha256": "6f8c16549a985f2783506f668dbdead802b5fe7202d6989774836a252451faaf"
+ },
+ "Ailerons": {
+  "rows": 13750,
+  "columns": 39,
+  "sha256": "1382061845823fb7dcfbb155f1a7870b5c3ac543fea27bd224509bd61c7096d8"
+ },
+ "Airfoil": {
+  "rows": 1503,
+  "columns": 5,
+  "sha256": "c5a9a755a958b8d0127d8f01927dc90db534b1ad38ae3893a8d544fec41ebf4d"
+ },
+ "Bank": {
+  "rows": 45211,
+  "columns": 16,
+  "sha256": "b56e0cb9edd0414422e2e25a96953243937f665b6caaacd5a26e51ab279dd065"
+ },
+ "BikeSharing": {
+  "rows": 17379,
+  "columns": 11,
+  "sha256": "ab4175842f579c0f2a56fb9ea508489207f069b33ddb98990a306486c0f0ef1b"
+ },
+ "CCPP": {
+  "rows": 9568,
+  "columns": 4,
+  "sha256": "a8c5af09f678989ce4ec2b1756f5ebd67577fcc5246f3947cb181288f2738b5a"
+ },
+ "COMPAS": {
+  "rows": 6167,
+  "columns": 9,
+  "sha256": "aa5f42cce5debc0e2e29f4177f3d2e52771ac14f3c32f6a62ceb225c343a5cbe"
+ },
+ "CaliforniaHousing": {
+  "rows": 20640,
+  "columns": 8,
+  "sha256": "5dce348710cfa5303d5bc184df34454041e20ea6e365dad4cf99f0c52654f897"
+ },
+ "Electrical": {
+  "rows": 10000,
+  "columns": 13,
+  "sha256": "d884bcd8d2fd5a5857767eee8ded468170bde8795bede0d766035cbf01a9233a"
+ },
+ "Elevators": {
+  "rows": 16599,
+  "columns": 18,
+  "sha256": "4bcd3bc9e379f973054460678935bf5a27c7289f1acb5d720b1c2ef8529c0fa4"
+ },
+ "Energy": {
+  "rows": 19735,
+  "columns": 28,
+  "sha256": "d9d0120feb16dcd59786ae10a8f0ef2eeaebad8921989f64b834a4ca95976588"
+ },
+ "HELOC": {
+  "rows": 10459,
+  "columns": 23,
+  "sha256": "eccdd7e3f0925cfa9978515247147cef290c568aa16a477014e554c20c47ae18"
+ },
+ "MIMIC2": {
+  "rows": 24508,
+  "columns": 17,
+  "sha256": "e4d514416bc2014cb2dca92b3636c7196989dbf30f9881238c1e1b384b6c36e3"
+ },
+ "Magic": {
+  "rows": 19020,
+  "columns": 10,
+  "sha256": "34937bc84721f5e1c22114cd17574a9a7f6537774e607c71cb3f4171f43a5155"
+ },
+ "No2": {
+  "rows": 500,
+  "columns": 7,
+  "sha256": "3e4a1e20d4a73bd9e813f3db1bb811a5b9d939867a7b3fd603fe082e0ac0e2fc"
+ },
+ "PMLB_APPENDICITIS": {
+  "rows": 106,
+  "columns": 7,
+  "sha256": "e5b3ebfe3211e812d3bb79c76bc864ac106d8fc53ead67958d75c074bf99c808"
+ },
+ "PMLB_CHURN": {
+  "rows": 5000,
+  "columns": 19,
+  "sha256": "897dd7c034e91f6ba68f7eefb0b2327af6264f24b5bc8196c8709f61fe3806f6"
+ },
+ "PMLB_PHONEME": {
+  "rows": 5404,
+  "columns": 5,
+  "sha256": "d30e27747db4a1717a28630fe6c0f11b66bf8bdf2857de985a3d379820aef2b7"
+ },
+ "PMLB_SPECTF": {
+  "rows": 349,
+  "columns": 44,
+  "sha256": "37db5ee5c859bb6c1783338f0478f7debb4b052e657f82a1ce4ec76f1dc10ce2"
+ },
+ "ParkinsonsMotor": {
+  "rows": 5875,
+  "columns": 19,
+  "sha256": "e63e058c14e4e3a015f92145c83caf3c14d7660dfa71cf7ce76e37271382d359"
+ },
+ "ParkinsonsTotal": {
+  "rows": 5875,
+  "columns": 19,
+  "sha256": "2cafd39a913e9d0fc06e809e3ebbcc05bf100196e75aa6ce652dd0fbec23269b"
+ },
+ "Sensory": {
+  "rows": 576,
+  "columns": 11,
+  "sha256": "f7e38c31ed612bb72bb239634e612fb4f96274122cbce21af7ae4e175f278216"
+ },
+ "SeoulBike": {
+  "rows": 8465,
+  "columns": 14,
+  "sha256": "0e005074d0ac7f5e0c1df288e101b00be93043baf7fe36af1b1fdd4567ff341c"
+ },
+ "SkillCraft": {
+  "rows": 3338,
+  "columns": 19,
+  "sha256": "641334f5ece63c1a1f22595d0f246903ce5cebf0715a05c5ede93e7abf3daa3c"
+ },
+ "Synthetic1": {
+  "rows": 1000,
+  "columns": 3,
+  "sha256": "32f8b450a614ed4dca2296668164c11305d43cf5e2395563fde19ce64f2198c4"
+ },
+ "Synthetic2": {
+  "rows": 1000,
+  "columns": 3,
+  "sha256": "f080aac6ffac872b1e6ed9f0dfd87f36efedd433b0e2c9a642dd8b511f3949a1"
+ },
+ "Synthetic3": {
+  "rows": 1000,
+  "columns": 3,
+  "sha256": "208c0c0a5a90b2970d635ffecf840b450e25f33a729db687d1b819dba6d4126b"
+ },
+ "T7Higgs": {
+  "rows": 30000,
+  "columns": 28,
+  "sha256": "3d634c2e39f360aa05578f0281bec713123d2118d03f0ccc508ae5b8ddd299eb"
+ },
+ "Wine": {
+  "rows": 6497,
+  "columns": 11,
+  "sha256": "f8c4754bd49bc298f1900a10bf57ee1c658d58942cf993ae087a61236e63cf2b"
+ }
+}

@@ -1,0 +1,16 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+Elevators,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,0,0.8893588308537496,0.0016282804086325386,0.002168111589682978,317.44475865364075,13
+Elevators,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,1,0.9012229266643598,0.0016166472719078534,0.0021874542925393622,325.3603661060333,8
+Elevators,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,2,0.8935264560080005,0.001632096275372664,0.002219617352479263,309.3523120880127,14
+Elevators,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,3,0.8862222754965753,0.001679394958026055,0.0023086486936081704,309.6183063983917,16
+Elevators,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,4,0.8916356479743159,0.0016010418299755725,0.0021209073245970697,343.21681332588196,15
+Elevators,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,0,0.8895112721541384,0.0016175574454274652,0.0021666174637840372,367.3003635406494,21
+Elevators,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,1,0.9052482074193962,0.001591768505830526,0.002142420066613463,308.4965546131134,12
+Elevators,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,2,0.8941438958844355,0.0016113338580702183,0.0022131722166862026,276.39118695259094,19
+Elevators,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,3,0.8912777542316686,0.0016206308494729693,0.002256775907790323,235.0376100540161,20
+Elevators,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,4,0.8897037234764127,0.0016144841978231067,0.0021397296191856944,243.04992723464966,20
+Elevators,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,0,0.8889756305962594,0.0016168578801110968,0.002171862918379366,246.3257577419281,17
+Elevators,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,1,0.903754623650926,0.001594980162080153,0.0021592396545647824,330.4515805244446,17
+Elevators,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,2,0.89088612676493,0.0016411309362642094,0.0022469698371075948,269.76773142814636,18
+Elevators,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,3,0.8881229448056457,0.001671342620147474,0.0022892843679929364,225.4178009033203,18
+Elevators,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,4,0.8923652844785621,0.0015869191174619525,0.002113755041269033,215.31370306015015,19

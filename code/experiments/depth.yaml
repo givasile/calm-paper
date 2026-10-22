@@ -1,0 +1,10 @@
+# How much of the gap between the GAM and the black box each level of
+# partitioning closes: CALM at depth 1 and 3 (depth 2 is `main`).
+datasets: benchmark
+resampling: {kind: kfold, n: 5}
+arms:
+  calm_depth1: {method: calm, params: {max_partition_depth: 1}, frozen: "CALM_D1_depth1"}
+  calm_depth3: {method: calm, params: {max_partition_depth: 3}, frozen: "CALM_V4_depth3"}
+frozen:
+  - "results_price_depth1_{task}_folds.csv"
+  - "results_systematic_{task}_folds.csv"

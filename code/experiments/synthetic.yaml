@@ -1,0 +1,8 @@
+# The explanatory example: a GAM, a GA²M and CALM on three functions whose
+# structure is known.
+datasets: synthetic
+resampling: {kind: kfold, n: 5}
+arms:
+  gam:  {method: ebm}
+  ga2m: {method: ebm, params: {interactions: 0.9}}
+  calm: {method: calm}

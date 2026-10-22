@@ -1,0 +1,11 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,accuracy,balanced_accuracy,f1,runtime_sec,num_interactions
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,0,0.7068333333333333,0.7049730380077601,0.6835761827666846,47.997488260269165,
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,1,0.7116666666666667,0.7099723471139782,0.6896304269824184,56.464877128601074,
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,2,0.7085,0.7075348203766841,0.6902780237294138,48.295374155044556,
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,3,0.7135,0.7116805228487603,0.6908829347239706,32.723901987075806,
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,4,0.6981666666666667,0.6968994552840923,0.6778153353495819,47.58341979980469,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,0,0.7761666666666667,0.7760725030614055,0.7663128588828955,76.67573046684265,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,1,0.7696666666666667,0.7696110784443138,0.7627060439560439,76.78770232200623,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,2,0.7861666666666667,0.7861028110779109,0.7787549577513364,139.19267868995667,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,3,0.779,0.7789124489831293,0.7685055865921788,144.7782142162323,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,4,0.7665,0.7664420657682631,0.7591542031975245,64.86602473258972,

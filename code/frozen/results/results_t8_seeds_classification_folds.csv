@@ -1,0 +1,11 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,accuracy,balanced_accuracy,f1,runtime_sec,num_interactions
+T7Telco,classification,CALM_N_s7,7,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.8112136266855926,0.7280580743496344,0.6076696165191741,26.57256126403809,3
+T7Telco,classification,CALM_N_s7,7,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.8140525195173882,0.7282828282828282,0.608955223880597,42.75811839103699,4
+T7Telco,classification,CALM_N_s7,7,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.7991483321504613,0.7070384148389264,0.5744360902255639,21.04924774169922,4
+T7Telco,classification,CALM_N_s7,7,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,3,0.7890625,0.6908351348276255,0.547945205479452,32.08689260482788,4
+T7Telco,classification,CALM_N_s7,7,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,4,0.8132102272727273,0.7246182538757431,0.6033182503770739,23.16162133216858,6
+T7Telco,classification,CALM_N_s123,123,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.7913413768630234,0.6974553721356791,0.5585585585585585,26.840668201446533,4
+T7Telco,classification,CALM_N_s123,123,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.8019872249822569,0.7081169753804025,0.5766312594840668,11.845695734024048,5
+T7Telco,classification,CALM_N_s123,123,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.8112136266855926,0.7220814280916583,0.5993975903614458,60.400871992111206,6
+T7Telco,classification,CALM_N_s123,123,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,3,0.8004261363636364,0.7113721697576516,0.5812220566318927,17.277804613113403,8
+T7Telco,classification,CALM_N_s123,123,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,4,0.8174715909090909,0.7326611493181023,0.6158445440956651,15.867288589477539,4

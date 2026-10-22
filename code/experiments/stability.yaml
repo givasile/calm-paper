@@ -1,0 +1,9 @@
+# Stability of the regions CALM finds: 20 bootstrap resamples per dataset.
+# The selection chains written by each fit are what the stability report reads.
+datasets: benchmark
+resampling: {kind: bootstrap, n: 20}
+arms:
+  calm: {method: calm, frozen: "CALM_N_boot"}
+frozen:
+  - "results_t11_boot_reg?_folds.csv"
+  - "results_t11_boot_cls?_folds.csv"

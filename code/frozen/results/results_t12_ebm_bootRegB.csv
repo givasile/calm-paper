@@ -1,0 +1,3 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,r2_mean,mae_mean,rmse_mean,runtime_sec_mean,num_interactions_mean,r2_std,mae_std,rmse_std,runtime_sec_std,num_interactions_std
+CaliforniaHousing,regression,EBM2_09_boot,42,0.2,,,,,,,,,,0.8137234433498971,0.33838281339094267,0.4984130658976308,3036.7608201265334,,0.004945143452315129,0.0037983695664319484,0.006292200757146111,576.5585294090512,
+Elevators,regression,EBM2_09_boot,42,0.2,,,,,,,,,,0.8912663123964446,0.0016729158990621824,0.002221122439521945,2361.7005846261977,,0.007208962880355539,4.751091912522013e-05,6.520778146052802e-05,626.796063649728,

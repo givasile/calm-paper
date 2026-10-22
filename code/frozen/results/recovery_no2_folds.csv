@@ -1,0 +1,6 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,0,0.5699013719177688,0.37149881620222963,0.4915785333682052,34.172499895095825,6
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,1,0.5145098998890743,0.3933501849789448,0.49862486655902827,36.426295042037964,11
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,2,0.6683351628826155,0.37871860466529633,0.472428254745283,76.84168815612793,8
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,3,0.5347967582179558,0.35599986599659955,0.4522809497795822,6.994382381439209,8
+No2,regression,CALM_F_ebm2,42,0.2,explained_variance,pdp,ebm2,xgb,blackbox,0.01,,,4,0.49367977620941494,0.43406268904961465,0.5494525926060683,9.362964153289795,4

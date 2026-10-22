@@ -1,0 +1,13 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+SkillCraft,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.6096962572171771,0.7218570418266322,0.9015848801711746,10.466753959655762,3
+SkillCraft,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.6181471961808676,0.7184926698590359,0.9089628864929253,7.6106038093566895,2
+SkillCraft,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.6211411515793124,0.6969587582882495,0.8770676067141278,6.8225932121276855,1
+Wine,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.36014073744450814,0.5252953285872124,0.6898797653482348,5.9185850620269775,5
+Wine,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.3413077926160374,0.567456524960102,0.7232791167098344,5.4251275062561035,4
+Wine,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.3703904231216353,0.5337462239340846,0.6860851661236724,5.76037859916687,6
+ParkinsonsMotor,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.9252899165870718,1.6258238466460369,2.1992390497600476,67.59110569953918,11
+ParkinsonsMotor,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.9320940325959254,1.546902925258421,2.1142558645654335,61.526204347610474,14
+ParkinsonsMotor,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.9241004360376261,1.6597269611087824,2.2651094146196935,60.26594948768616,10
+Energy,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.34238448152101775,46.89340335088716,83.02699092165419,77.78967380523682,28
+Energy,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.3443538158751379,47.30375489284733,84.86235746482096,85.44813275337219,30
+Energy,regression,CALM_N_k3,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.3427748117584858,46.00322709150595,81.32280247171099,74.07577252388,35

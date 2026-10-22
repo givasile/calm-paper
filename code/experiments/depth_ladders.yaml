@@ -1,0 +1,9 @@
+# The four depth ladders of the appendix: depths 4 to 6
+# (depths 1 to 3 are `depth` and `main`).
+datasets: [Adult, Bank, BikeSharing, PMLB_PHONEME]
+resampling: {kind: kfold, n: 5}
+arms:
+  calm_depth4: {method: calm, params: {max_partition_depth: 4}, frozen: "CALM_D4_depth4"}
+  calm_depth5: {method: calm, params: {max_partition_depth: 5}, frozen: "CALM_D5_depth5"}
+  calm_depth6: {method: calm, params: {max_partition_depth: 6}, frozen: "CALM_D6_depth6"}
+frozen: "results_*_depth_ladder_folds.csv"

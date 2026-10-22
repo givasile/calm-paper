@@ -1,0 +1,1 @@
+{"kind": "ebm_terms", "dataset": "Airfoil", "fold": 2, "n_features": 5, "n_terms": 10, "pairs": [["angle", "frequency"], ["frequency", "length"], ["frequency", "thickness"], ["angle", "velocity"], ["angle", "thickness"]], "pair_importances": [0.15623288613492117, 0.249504336478236, 0.4305851838001355, 0.05985216057564966, 0.0870298947202396]}

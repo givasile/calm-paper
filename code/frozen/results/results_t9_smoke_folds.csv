@@ -1,0 +1,11 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+T7Yacht,regression,CALM_N_repro,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,0,0.9867726630714697,0.9508817939836725,1.4820408397540077,4.233984470367432,0
+T7Yacht,regression,CALM_N_repro,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,1,0.9881038025764222,1.050729907994499,1.5726922459545718,2.085585117340088,0
+T7Yacht,regression,CALM_N_repro,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,2,0.9854396297721421,1.2417995196678369,2.0927452354342293,0.7934753894805908,0
+T7Yacht,regression,CALM_N_repro,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,3,0.9875597868349149,1.01363648341544,1.6786691861583927,2.3939318656921387,0
+T7Yacht,regression,CALM_N_repro,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,,4,0.9927750413602374,0.9275449616537368,1.2863741579699977,1.8113517761230469,0
+T7Yacht,regression,CALM_N_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,0,0.9950545295071156,0.6173267035165646,0.9062077476272675,10.582759141921997,2
+T7Yacht,regression,CALM_N_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,1,0.9942181729001685,0.6022381076137939,1.0964080467613073,9.51490831375122,2
+T7Yacht,regression,CALM_N_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,2,0.9945461929184729,0.6286400822895682,1.280796224206862,6.911945104598999,2
+T7Yacht,regression,CALM_N_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,3,0.9963782766092784,0.5760252515258475,0.9057510506392198,3.8383636474609375,4
+T7Yacht,regression,CALM_N_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,4,0.9971783099123017,0.4889088692078307,0.8039041684003235,8.319401741027832,2

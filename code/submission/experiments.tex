@@ -1,0 +1,86 @@
+On each real dataset, we evaluate \method{} against an XGBoost baseline (with neural networks and random forests included in the appendix), two \gam{}models (NAM and EBM, as well as SPLINE included in the appendix), and three \gamm{} models: EB$^2$M (EBM with pairwise interactions enabled), NODE-GA$^2$M, and GAMI‐Net. Evaluation is based on accuracy for classification tasks and RMSE for regression datasets. In the main tables, \method{} uses XGBoost as the Step-1 reference model and EBM as the regional GAM; full results across all teacher $\times$ regional-GAM combinations are in Appendix~\ref{app:detailed-experiments}.
+
+\begin{table}
+\caption{Classification accuracy vs.\ baselines (mean $\pm$ std.\ dev.\ over 5-fold CV).
+\textbf{\ding{51}}/\textbf{\ding{55}} denotes strictly higher/lower accuracy than \method{};
+\textbf{$\mathbf{=}$} denotes exactly equal accuracy to \method{}.}
+\label{tab:clf-acc}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Dataset} & \textbf{BB} & \multicolumn{2}{c}{\textbf{GAM}} & \textbf{\method{}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4} \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & & \textbf{EB$^2$M} & \textbf{NODE} & \textbf{GAMI} \\
+\midrule
+Adult        & $0.870 \text{\scriptsize$\pm$0.002}$ $\mathbf{=}$ & $0.851 \text{\scriptsize$\pm$0.002}$ \ding{55} & $0.870 \text{\scriptsize$\pm$0.002}$ $\mathbf{=}$ & $0.870 \text{\scriptsize$\pm$0.002}$ & $0.871 \text{\scriptsize$\pm$0.003}$ \ding{51} & $0.850 \text{\scriptsize$\pm$0.002}$ \ding{55} & $0.857 \text{\scriptsize$\pm$0.003}$ \ding{55} \\
+COMPAS       & $0.661 \text{\scriptsize$\pm$0.007}$ \ding{55} & $0.682 \text{\scriptsize$\pm$0.016}$ \ding{55} & $0.681 \text{\scriptsize$\pm$0.012}$ \ding{55} & $0.684 \text{\scriptsize$\pm$0.013}$ & $0.684 \text{\scriptsize$\pm$0.011}$ $\mathbf{=}$ & $0.667 \text{\scriptsize$\pm$0.013}$ \ding{55} & $0.686 \text{\scriptsize$\pm$0.013}$ \ding{51} \\
+HELOC        & $0.717 \text{\scriptsize$\pm$0.013}$ \ding{55} & $0.723 \text{\scriptsize$\pm$0.011}$ \ding{55} & $0.728 \text{\scriptsize$\pm$0.014}$ $\mathbf{=}$ & $0.728 \text{\scriptsize$\pm$0.012}$ & $0.730 \text{\scriptsize$\pm$0.012}$ \ding{51} & $0.715 \text{\scriptsize$\pm$0.008}$ \ding{55} & $0.725 \text{\scriptsize$\pm$0.012}$ \ding{55} \\
+MIMIC2       & $0.890 \text{\scriptsize$\pm$0.001}$ \ding{51} & $0.886 \text{\scriptsize$\pm$0.001}$ $\mathbf{=}$ & $0.886 \text{\scriptsize$\pm$0.003}$ $\mathbf{=}$ & $0.886 \text{\scriptsize$\pm$0.003}$ & $0.886 \text{\scriptsize$\pm$0.003}$ $\mathbf{=}$ & $0.888 \text{\scriptsize$\pm$0.002}$ \ding{51} & $0.884 \text{\scriptsize$\pm$0.003}$ \ding{55} \\
+Appendicitis & $0.868 \text{\scriptsize$\pm$0.069}$ \ding{55} & $0.848 \text{\scriptsize$\pm$0.056}$ \ding{55} & $0.877 \text{\scriptsize$\pm$0.077}$ \ding{55} & $0.878 \text{\scriptsize$\pm$0.063}$ & $0.869 \text{\scriptsize$\pm$0.079}$ \ding{55} & $0.849 \text{\scriptsize$\pm$0.016}$ \ding{55} & $0.764 \text{\scriptsize$\pm$0.074}$ \ding{55} \\
+Phoneme      & $0.898 \text{\scriptsize$\pm$0.006}$ \ding{51} & $0.808 \text{\scriptsize$\pm$0.002}$ \ding{55} & $0.821 \text{\scriptsize$\pm$0.007}$ \ding{55} & $0.861 \text{\scriptsize$\pm$0.011}$ & $0.863 \text{\scriptsize$\pm$0.007}$ \ding{51} & $0.869 \text{\scriptsize$\pm$0.003}$ \ding{51} & $0.876 \text{\scriptsize$\pm$0.009}$ \ding{51} \\
+SPECTF       & $0.862 \text{\scriptsize$\pm$0.029}$ \ding{55} & $0.839 \text{\scriptsize$\pm$0.030}$ \ding{55} & $0.894 \text{\scriptsize$\pm$0.015}$ $\mathbf{=}$ & $0.894 \text{\scriptsize$\pm$0.015}$ & $0.882 \text{\scriptsize$\pm$0.017}$ \ding{55} & $0.820 \text{\scriptsize$\pm$0.067}$ \ding{55} & $0.874 \text{\scriptsize$\pm$0.016}$ \ding{55} \\
+Magic        & $0.885 \text{\scriptsize$\pm$0.004}$ \ding{51} & $0.850 \text{\scriptsize$\pm$0.006}$ \ding{55} & $0.857 \text{\scriptsize$\pm$0.005}$ \ding{55} & $0.864 \text{\scriptsize$\pm$0.004}$ & $0.872 \text{\scriptsize$\pm$0.003}$ \ding{51} & $0.876 \text{\scriptsize$\pm$0.004}$ \ding{51} & $0.874 \text{\scriptsize$\pm$0.003}$ \ding{51} \\
+Bank         & $0.908 \text{\scriptsize$\pm$0.003}$ \ding{51} & $0.901 \text{\scriptsize$\pm$0.003}$ \ding{55} & $0.902 \text{\scriptsize$\pm$0.002}$ \ding{55} & $0.905 \text{\scriptsize$\pm$0.002}$ & $0.909 \text{\scriptsize$\pm$0.002}$ \ding{51} & $0.903 \text{\scriptsize$\pm$0.001}$ \ding{55} & $0.908 \text{\scriptsize$\pm$0.003}$ \ding{51} \\
+Churn        & $0.958 \text{\scriptsize$\pm$0.004}$ \ding{51} & $0.885 \text{\scriptsize$\pm$0.009}$ \ding{55} & $0.886 \text{\scriptsize$\pm$0.005}$ \ding{55} & $0.946 \text{\scriptsize$\pm$0.003}$ & $0.957 \text{\scriptsize$\pm$0.009}$ \ding{51} & $0.954 \text{\scriptsize$\pm$0.009}$ \ding{51} & $0.952 \text{\scriptsize$\pm$0.007}$ \ding{51} \\
+\midrule
+\textbf{W/D/L} & \textbf{5/1/4} & \textbf{0/1/9} & \textbf{0/4/6} & & \textbf{6/2/2} & \textbf{4/0/6} & \textbf{5/0/5} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Classification Results.}
+On classification datasets (Table~\ref{tab:clf-acc}), \method{}:
+(i) outperforms both GAM baselines in almost all cases (9/10 over NAM; 6/10 over EBM with 4 draws)
+(ii) is competitive with the three GA²M models: CALM matches or beats EB²M on 4/10, NODE-GA²M on 6/10, and GAMI-Net on 5/10 datasets, and
+(iii) matches or beats the XGBoost black-box on 5/10 datasets.
+
+\begin{table}[htbp]
+\caption{Regression RMSE vs.\ baselines (mean $\pm$ std.\ dev.\ over 5-fold CV).
+\textbf{\ding{51}}/\textbf{\ding{55}} denotes strictly lower/higher RMSE than \method{};
+\textbf{$\mathbf{=}$} denotes exactly equal RMSE to \method{}.}
+\label{tab:regr-rmse}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Dataset} & \textbf{BB} & \multicolumn{2}{c}{\textbf{GAM}} & \textbf{\method{}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4} \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & & \textbf{EB$^2$M} & \textbf{NODE} & \textbf{GAMI} \\
+\midrule
+Bike Sharing       & $39.35 \text{\scriptsize$\pm$1.38}$ \ding{51}  & $101.97 \text{\scriptsize$\pm$1.31}$ \ding{55} & $100.21 \text{\scriptsize$\pm$1.01}$ \ding{55} & $55.67 \text{\scriptsize$\pm$1.22}$ & $54.80 \text{\scriptsize$\pm$0.96}$ \ding{51}   & $54.47 \text{\scriptsize$\pm$1.58}$ \ding{51}   & $53.44 \text{\scriptsize$\pm$1.90}$ \ding{51}   \\
+California Housing & $0.45 \text{\scriptsize$\pm$0.01}$ \ding{51}   & $0.61 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.55 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.51 \text{\scriptsize$\pm$0.01}$ & $0.49 \text{\scriptsize$\pm$0.01}$ \ding{51}    & $0.50 \text{\scriptsize$\pm$0.01}$ \ding{51}    & $0.51 \text{\scriptsize$\pm$0.04}$ $\mathbf{=}$   \\
+Parkinsons Motor   & $1.44 \text{\scriptsize$\pm$0.09}$ \ding{51}   & $6.11 \text{\scriptsize$\pm$0.16}$ \ding{55}   & $4.20 \text{\scriptsize$\pm$0.09}$ \ding{55}   & $2.24 \text{\scriptsize$\pm$0.13}$ & $2.35 \text{\scriptsize$\pm$0.06}$ \ding{55}    & $3.49 \text{\scriptsize$\pm$0.31}$ \ding{55}    & $2.76 \text{\scriptsize$\pm$0.31}$ \ding{55}    \\
+Parkinsons Total   & $1.86 \text{\scriptsize$\pm$0.08}$ \ding{51}   & $7.90 \text{\scriptsize$\pm$0.10}$ \ding{55}   & $4.85 \text{\scriptsize$\pm$0.11}$ \ding{55}   & $2.97 \text{\scriptsize$\pm$0.09}$ & $2.77 \text{\scriptsize$\pm$0.06}$ \ding{51}    & $4.60 \text{\scriptsize$\pm$0.53}$ \ding{55}    & $3.81 \text{\scriptsize$\pm$0.66}$ \ding{55}    \\
+Seoul Bike         & $209.6 \text{\scriptsize$\pm$3.47}$ \ding{51}  & $320.2 \text{\scriptsize$\pm$4.38}$ \ding{55}  & $303.7 \text{\scriptsize$\pm$3.86}$ \ding{55}  & $238.9 \text{\scriptsize$\pm$1.64}$ & $235.2 \text{\scriptsize$\pm$1.58}$ \ding{51}   & $231.0 \text{\scriptsize$\pm$4.23}$ \ding{51}   & $245.82 \text{\scriptsize$\pm$8.45}$ \ding{55}  \\
+Wine               & $0.62 \text{\scriptsize$\pm$0.01}$ \ding{51}   & $0.72 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.70 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.69 \text{\scriptsize$\pm$0.02}$ & $0.68 \text{\scriptsize$\pm$0.01}$ \ding{51}    & $0.69 \text{\scriptsize$\pm$0.01}$ $\mathbf{=}$   & $0.71 \text{\scriptsize$\pm$0.00}$ \ding{55}    \\
+Energy             & $67.97 \text{\scriptsize$\pm$2.58}$ \ding{51}  & $89.80 \text{\scriptsize$\pm$2.67}$ \ding{55}  & $85.23 \text{\scriptsize$\pm$2.49}$ \ding{55}  & $83.09 \text{\scriptsize$\pm$1.97}$ & $77.33 \text{\scriptsize$\pm$2.46}$ \ding{51}   & $82.18 \text{\scriptsize$\pm$2.53}$ \ding{51}   & $180.1 \text{\scriptsize$\pm$84.09}$ \ding{55}  \\
+CCPP               & $3.09 \text{\scriptsize$\pm$0.09}$ \ding{51}   & $4.21 \text{\scriptsize$\pm$0.05}$ \ding{55}   & $3.44 \text{\scriptsize$\pm$0.08}$ \ding{55}   & $3.42 \text{\scriptsize$\pm$0.07}$ & $3.28 \text{\scriptsize$\pm$0.07}$ \ding{51}    & $3.97 \text{\scriptsize$\pm$0.07}$ \ding{55}    & $3.92 \text{\scriptsize$\pm$0.07}$ \ding{55}    \\
+Electrical         & $0.04 \text{\scriptsize$\pm$0.02}$ \ding{55}   & $0.04 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.02 \text{\scriptsize$\pm$0.01}$ $\mathbf{=}$  & $0.02 \text{\scriptsize$\pm$0.01}$ & $0.02 \text{\scriptsize$\pm$0.01}$ $\mathbf{=}$   & $0.01 \text{\scriptsize$\pm$0.01}$ \ding{51}    & $0.02 \text{\scriptsize$\pm$0.01}$ $\mathbf{=}$   \\
+Elevators          & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   & $2.0\!\times\!10^{-3} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   \\
+No2                & $0.47 \text{\scriptsize$\pm$0.03}$ \ding{51}   & $0.50 \text{\scriptsize$\pm$0.02}$ \ding{55}   & $0.49 \text{\scriptsize$\pm$0.03}$ $\mathbf{=}$  & $0.49 \text{\scriptsize$\pm$0.04}$ & $0.47 \text{\scriptsize$\pm$0.03}$ \ding{51}    & $0.52 \text{\scriptsize$\pm$0.02}$ \ding{55}    & $0.50 \text{\scriptsize$\pm$0.03}$ \ding{55}    \\
+Sensory            & $0.51 \text{\scriptsize$\pm$0.03}$ \ding{55}   & $0.48 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.48 \text{\scriptsize$\pm$0.01}$ \ding{55}   & $0.45 \text{\scriptsize$\pm$0.02}$ & $0.45 \text{\scriptsize$\pm$0.02}$ $\mathbf{=}$   & $0.49 \text{\scriptsize$\pm$0.01}$ \ding{55}    & $0.46 \text{\scriptsize$\pm$0.03}$ \ding{55}    \\
+Airfoil            & $1.54 \text{\scriptsize$\pm$0.10}$ \ding{51}   & $4.80 \text{\scriptsize$\pm$0.20}$ \ding{55}   & $4.57 \text{\scriptsize$\pm$0.15}$ \ding{55}   & $2.50 \text{\scriptsize$\pm$0.15}$ & $2.17 \text{\scriptsize$\pm$0.09}$ \ding{51}    & $2.13 \text{\scriptsize$\pm$0.11}$ \ding{51}    & $4.79 \text{\scriptsize$\pm$0.21}$ \ding{55}    \\
+Skill Craft        & $0.94 \text{\scriptsize$\pm$0.02}$ \ding{55}   & $0.93 \text{\scriptsize$\pm$0.03}$ \ding{55}   & $0.90 \text{\scriptsize$\pm$0.02}$ $\mathbf{=}$  & $0.90 \text{\scriptsize$\pm$0.02}$ & $0.90 \text{\scriptsize$\pm$0.03}$ $\mathbf{=}$   & $0.91 \text{\scriptsize$\pm$0.02}$ \ding{55}    & $1.38 \text{\scriptsize$\pm$0.80}$ \ding{55}    \\
+Ailerons           & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$  & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   & $2.0\!\times\!10^{-4} \text{\scriptsize$\pm$0}$ $\mathbf{=}$   \\
+\midrule
+\textbf{W/D/L} & \textbf{10/2/3} & \textbf{0/2/13} & \textbf{0/5/10} & & \textbf{9/5/1} & \textbf{6/3/6} & \textbf{1/4/10} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\textbf{Regression Results.}
+On regression datasets (Table~\ref{tab:regr-rmse}), \method{}:
+(i) outperforms both GAM baselines in the large majority of cases (13/15 over NAM; 10/15 over EBM);
+(ii) matches NODE-GA$^2$M (6W/3D/6L) and outperforms GAMI-Net (10W/4D/1L), while EB$^2$M achieves lower RMSE in 9/15 cases;
+(iii) matches or beats XGBoost on 5/15 datasets.
+CALM thus achieves clear improvements over GAMs while maintaining 1D shape functions per region; the gap relative to EB$^2$M and XGBoost reflects the expected cost of stronger interpretability constraints.
+
+\textbf{Model Complexity.}
+In addition to its strong predictive performance, \method{} achieves its results using remarkably few pairwise feature interactions, 6.2 on average for classification and 15.1 for regression. On classification tasks, this is fewer than EB$^2$M (15.2), GAMI-Net (17.6), and NODE-GA$^2$M (97.7). On regression tasks, \method{} remains sparser than GAMI-Net (16.3) and NODE-GA$^2$M (87.3), and close to EB$^2$M (14.1), as shown in Tables~\ref{tab:classification_interactions} and~\ref{tab:regression_interactions} of Appendix~\ref{app:detailed-experiments}. While most \gamm{} methods allow explicit control over the number of interactions, we apply them using their default configurations. In contrast, \method{} does not impose an interaction cap, but still discovers a sparse structure through region-based conditioning.
+
+\textbf{Runtime.}
+On classification tasks, \method{} is slightly slower than EBM and EB$^2$M, but noticeably faster than the other two \gamm{} models (GAMI-Net and NODE-GA$^2$M), and even faster than NAM, despite the fact that NAM does not model interactions. In regression tasks, \method{} exhibits a runtime similar to NAM and EB$^2$M, and remains significantly faster than the remaining \gamm{} baselines. Average runtimes across datasets are reported in Tables~\ref{tab:clf-time-def} and~\ref{tab:regr-time-def} (Appendix~\ref{app:detailed-experiments}).
+
+\textbf{Human Interpretability.} A within-subjects user study ($N=25$) showed that CALM explanations are significantly easier to use than heatmap-based GA$^2$M representations: participants achieved 54\% vs.\ 34\% accuracy overall ($p<0.05$), with the largest gain on prediction-change tasks (40\% vs.\ 12\%). Full details are in Appendix~\ref{app:user-study}.

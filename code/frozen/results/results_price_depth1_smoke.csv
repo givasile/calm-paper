@@ -1,0 +1,2 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,min_heterogeneity_decrease_pcg,max_depth,r2_mean,mae_mean,rmse_mean,runtime_sec_mean,num_interactions_mean,r2_std,mae_std,rmse_std,runtime_sec_std,num_interactions_std
+Airfoil,regression,CALM_D1_depth1,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,1,0.7605546145234597,2.4555476286167233,3.3645575688976095,3.273643064498901,2.0,0.021087136333355194,0.12689006873203704,0.12411002535438119,1.184911893641505,0.0

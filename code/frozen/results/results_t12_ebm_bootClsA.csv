@@ -1,0 +1,3 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,accuracy_mean,balanced_accuracy_mean,f1_mean,runtime_sec_mean,num_interactions_mean,accuracy_std,balanced_accuracy_std,f1_std,runtime_sec_std,num_interactions_std
+MIMIC2,classification,EBM2_09_boot,42,0.2,,,,,,,,,,0.8758765542606846,0.6286033590549794,0.3725012056574397,3075.0878596425055,,0.00213976204789071,0.005834561156064383,0.011164220472109326,463.03741617304536,
+Bank,classification,EBM2_09_boot,42,0.2,,,,,,,,,,0.9049999908577883,0.7215540047384772,0.5432199019644496,3021.461319053173,,0.0020503391792482347,0.0058357722767063604,0.010789872371791888,695.4925761420104,

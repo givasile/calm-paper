@@ -1,0 +1,16 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,accuracy,balanced_accuracy,f1,runtime_sec,num_interactions
+Bank,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,0,0.9078845515868628,0.7034961583214273,0.5258964143426295,363.1962790489197,18
+Bank,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,1,0.906989604069896,0.701087066632149,0.5207977207977208,315.15918159484863,17
+Bank,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,2,0.9032293740322938,0.6856953510044664,0.4927536231884058,303.2054386138916,18
+Bank,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,3,0.9090909090909091,0.6984436737368878,0.5215366705471478,370.6622383594513,25
+Bank,classification,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,4,0.90687900906879,0.7148196440139258,0.5383771929824561,339.1238260269165,27
+Bank,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,0,0.906668141103616,0.7060871459127641,0.5269058295964125,415.63622403144836,17
+Bank,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,1,0.9072107940721079,0.7077790132752458,0.5299719887955182,267.7787046432495,22
+Bank,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,2,0.9040035390400354,0.6951529476722822,0.5073779795686719,226.40296578407288,24
+Bank,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,3,0.9086485290864853,0.6977832081933243,0.5197674418604651,278.5812020301819,36
+Bank,classification,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,4,0.9067684140676842,0.7147570187634248,0.538082191780822,240.83172965049744,25
+Bank,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,0,0.9096538759261307,0.7176171531451339,0.5473684210526316,258.2594401836395,28
+Bank,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,1,0.9067684140676842,0.70711812415545,0.5282596530498042,258.60498237609863,25
+Bank,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,2,0.9046671090466711,0.6992183800493237,0.5140924464487034,245.42543983459473,29
+Bank,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,3,0.9087591240875912,0.7052251951918961,0.5299145299145299,272.76797914505005,47
+Bank,classification,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,4,0.9074319840743198,0.7073434439768005,0.5300393037619315,194.72616839408875,26

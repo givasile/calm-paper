@@ -1,0 +1,35 @@
+
+depth — new against frozen, tolerance 5e-05
+  calm_depth1       125/125 cells match, 25 datasets
+  calm_depth3       125/125 cells match, 25 datasets
+  compared 250 of 250 cells
+
+depth_ladders — new against frozen, tolerance 5e-05
+  calm_depth4       20/20 cells match, 4 datasets
+  calm_depth5       20/20 cells match, 4 datasets
+  calm_depth6       20/20 cells match, 4 datasets
+  compared 60 of 60 cells
+
+eb2m — new against frozen, tolerance 5e-05
+  eb2m              125/125 cells match, 25 datasets
+  compared 125 of 125 cells
+
+main — new against frozen, tolerance 5e-05
+  calm              125/125 cells match, 25 datasets
+  ebm               125/125 cells match, 25 datasets
+  xgb               125/125 cells match, 25 datasets
+  compared 375 of 375 cells
+
+sensitivity — new against frozen, tolerance 5e-05
+  calm_gain_double  125/125 cells match, 25 datasets
+  calm_gain_half    125/125 cells match, 25 datasets
+  compared 250 of 250 cells
+
+stability — new against frozen, tolerance 5e-05
+  calm              500/500 cells match, 25 datasets
+  compared 500 of 500 cells
+
+stability_eb2m — new against frozen, tolerance 5e-05
+  eb2m              360/360 cells match, 18 datasets
+  compared 360 of 500 cells
+synthetic: nothing to compare yet

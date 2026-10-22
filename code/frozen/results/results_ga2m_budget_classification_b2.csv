@@ -1,0 +1,3 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,accuracy_mean,balanced_accuracy_mean,f1_mean,runtime_sec_mean,num_interactions_mean,accuracy_std,balanced_accuracy_std,f1_std,runtime_sec_std,num_interactions_std
+T7Higgs,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,0.7043,0.7029265037673381,0.6836371709595553,36.61185221672058,,0.0034887119558815872,0.003340572367860954,0.0034103251676120524,8.46046120581963,
+T7CoverTypeBin,classification,WithInteractionsEBMClassifier,42,0.2,,,,,,,,,,0.7678333333333335,0.7677567044095921,0.758545836539417,52.321384477615354,,0.004012480529547792,0.004003676410783857,0.003358943638921896,6.975970941267466,

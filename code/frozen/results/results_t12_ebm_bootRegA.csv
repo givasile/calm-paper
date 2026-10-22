@@ -1,0 +1,2 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,r2_mean,mae_mean,rmse_mean,runtime_sec_mean,num_interactions_mean,r2_std,mae_std,rmse_std,runtime_sec_std,num_interactions_std
+Ailerons,regression,EBM2_09_boot,42,0.2,,,,,,,,,,0.8029323771974269,0.0001307195979543386,0.000181473569290008,2621.35364484787,,0.010139403405837761,2.9392648468221794e-06,3.6249529910882437e-06,922.0498534695424,

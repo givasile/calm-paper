@@ -1,0 +1,5 @@
+We introduced \method{}, an interpretable-by-design model that narrows the gap between the interpretability of GAMs and the accuracy of \gamms{}: it models interactions as \emph{conditional feature effects}, one univariate curve per feature and region of its interacting features.
+On 24 datasets, \method{} never loses to a GAM, adds only about eight curves to it and closes about a third of the gap to XGBoost; in a user study, it is read more accurately than a \gamm{}.
+Its main limitation is that interpretability may degrade as interactions grow: although \method{} uses only 6.6 conditional interactions on average in regression and 6.8 in classification, a feature that depends on many others gets many curves and vertical dotted lines, which make it harder to read.
+Future work includes replacing the distillation pipeline with end-to-end training, e.g., a neural network under the same structural constraints, and studying the identifiability of \method{} and its connection to the functional ANOVA decomposition~\cite{hooker2007generalized}.
+Python package: \url{https://pypi.org/project/calm-additive}.

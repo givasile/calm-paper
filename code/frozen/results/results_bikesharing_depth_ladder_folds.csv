@@ -1,0 +1,16 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,fold,r2,mae,rmse,runtime_sec,num_interactions
+BikeSharing,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,0,0.9181699090835111,34.6449469563128,51.90552468530659,213.0821897983551,5
+BikeSharing,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,1,0.9090968871255887,36.030472468157306,55.11501397222097,216.9327347278595,5
+BikeSharing,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,2,0.9156045480338794,35.702301714729785,53.38403312817907,204.5818440914154,5
+BikeSharing,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,3,0.919218160189646,35.01245420999235,50.96123587566947,212.71849822998047,5
+BikeSharing,regression,CALM_D4_depth4,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,4,4,0.9182715988391098,34.7609688838649,51.31162757205252,197.02257418632507,5
+BikeSharing,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,0,0.9286314395096458,31.824616264863874,48.47418736211321,252.36521434783936,7
+BikeSharing,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,1,0.9218402358057645,32.98237019050594,51.106032214309856,276.05774569511414,9
+BikeSharing,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,2,0.9238123875313825,32.872808885123646,50.72172811126822,227.59062361717224,8
+BikeSharing,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,3,0.9289740766658751,32.239190591051916,47.784992894341194,243.59011054039001,8
+BikeSharing,regression,CALM_D5_depth5,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,5,4,0.921439319388512,32.95512005749676,50.30740405440002,199.3016550540924,8
+BikeSharing,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,0,0.9334531027369356,30.05473703582669,46.80809583682162,174.57965803146362,10
+BikeSharing,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,1,0.9247989142227461,32.02774591792288,50.129410751357135,173.91656041145325,10
+BikeSharing,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,2,0.9237928280335628,31.6725613290992,50.7282385388299,197.4328315258026,9
+BikeSharing,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,3,0.9314932104432951,31.071291832630674,46.92992816455369,195.68773412704468,10
+BikeSharing,regression,CALM_D6_depth6,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,,,6,4,0.9262487932106058,31.519067470555644,48.743179479420206,167.8643674850464,10

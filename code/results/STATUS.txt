@@ -1,0 +1,9 @@
+experiment                    done  running  failed    spent  left (1 worker)
+depth                      250/250        0       0    7h49m            0m00s
+depth_ladders                60/60        0       0    4h04m            0m00s
+eb2m                       125/125        0       0   11h13m            0m00s
+main                       375/375        0       0    4h17m            0m00s
+sensitivity                250/250        0       0    8h12m            0m00s
+stability                  500/500        0       0   91h20m            0m00s
+stability_eb2m             500/500        0       0  314h34m            0m00s
+synthetic                    45/45        0       0   56m34s            0m00s

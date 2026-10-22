@@ -1,0 +1,2 @@
+dataset,task,method,random_seed,test_size,detection,effect,fitter,blackbox,selection_target,min_r2_gain,relative_gain,min_heterogeneity_decrease_pcg,max_depth,r2_mean,mae_mean,rmse_mean,runtime_sec_mean,num_interactions_mean,r2_std,mae_std,rmse_std,runtime_sec_std,num_interactions_std
+T7Yacht,regression,CALM_V3_rel,42,0.2,explained_variance,pdp,ebm,xgb,blackbox,0.01,0.1,,,0.9551343274561817,1.271518952911991,2.5449844533821997,132.14776306152345,5.0,0.04984483212981737,0.8181689752974158,1.8763549588606434,39.61718880913447,1.2649110640673518
