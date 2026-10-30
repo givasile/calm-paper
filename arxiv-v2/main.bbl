@@ -1,0 +1,313 @@
+\begin{thebibliography}{10}
+
+\bibitem{agarwal2021neural}
+Rishabh Agarwal, Levi Melnick, Nicholas Frosst, Xuezhou Zhang, Ben Lengerich,
+  Rich Caruana, and Geoffrey~E Hinton.
+\newblock Neural additive models: Interpretable machine learning with neural
+  nets.
+\newblock In {\em Advances in Neural Information Processing Systems},
+  volume~34, pages 4699--4711, 2021.
+
+\bibitem{angelino2018learningcertifiablyoptimalrule}
+Elaine Angelino, Nicholas Larus-Stone, Daniel Alabi, Margo Seltzer, and Cynthia
+  Rudin.
+\newblock Learning certifiably optimal rule lists for categorical data, 2018.
+
+\bibitem{apley2020visualizing}
+Daniel~W Apley and Jingyu Zhu.
+\newblock Visualizing the effects of predictor variables in black box
+  supervised learning models.
+\newblock {\em Journal of the Royal Statistical Society Series B: Statistical
+  Methodology}, 82(4):1059--1086, 2020.
+
+\bibitem{baniecki2024robustness}
+Hubert Baniecki, Giuseppe Casalicchio, Bernd Bischl, and Przemyslaw Biecek.
+\newblock On the robustness of global feature effect explanations.
+\newblock In {\em Joint European Conference on Machine Learning and Knowledge
+  Discovery in Databases (ECML PKDD)}, pages 125--142. Springer, 2024.
+
+\bibitem{bien2012prototype}
+Jacob Bien and Robert Tibshirani.
+\newblock Prototype selection for interpretable classification.
+\newblock {\em The Annals of Applied Statistics}, 5(4), 2011.
+
+\bibitem{breiman1984cart}
+L.~Breiman, J.~Friedman, R.A. Olshen, and C.J. Stone.
+\newblock {\em Classification and Regression Trees}.
+\newblock Chapman and Hall/CRC, 1984.
+
+\bibitem{luism78_energydata}
+Luis~M. Candanedo.
+\newblock Appliances energy prediction dataset, 2017.
+
+\bibitem{candanedo2017energy}
+Luis~M. Candanedo, Véronique Feldheim, and Dominique Deramaix.
+\newblock Data driven prediction models of energy use of appliances in a
+  low-energy house.
+\newblock {\em Energy and Buildings}, 140:81--97, 2017.
+
+\bibitem{caruana2015intelligible}
+Rich Caruana, Yin Lou, Johannes Gehrke, Paul Koch, Marc Sturm, and Noemie
+  Elhadad.
+\newblock Intelligible models for healthcare: Predicting pneumonia risk and
+  hospital 30-day readmission.
+\newblock In {\em Proceedings of the 21th ACM SIGKDD international conference
+  on knowledge discovery and data mining}, pages 1721--1730, 2015.
+
+\bibitem{chang2022node}
+Chun-Hao Chang, Rich Caruana, and Anna Goldenberg.
+\newblock Node-gam: Neural generalized additive model for interpretable deep
+  learning.
+\newblock In {\em International Conference on Learning Representations}, 2022.
+
+\bibitem{chen2019looks}
+Chaofan Chen, Oscar Li, Chaofan Tao, Alina~Jade Barnett, Jonathan Su, and
+  Cynthia Rudin.
+\newblock This looks like that: Deep learning for interpretable image
+  recognition.
+\newblock In {\em NeurIPS}, 2019.
+
+\bibitem{doshi2017towards}
+Finale Doshi-Velez and Been Kim.
+\newblock Towards a rigorous science of interpretable machine learning.
+\newblock {\em arXiv preprint arXiv:1702.08608}, 2017.
+
+\bibitem{fanaee2014event}
+Hadi Fanaee-T and Jo{\~a}o Gama.
+\newblock Event labeling combining ensemble detectors and background knowledge.
+\newblock {\em Progress in Artificial Intelligence}, 2(2):113--127, 2014.
+
+\bibitem{friedman2001greedy}
+Jerome~H Friedman.
+\newblock Greedy function approximation: A gradient boosting machine.
+\newblock {\em Annals of Statistics}, 29(5):1189--1232, 2001.
+
+\bibitem{gkolemis2023rhale}
+Vasilis Gkolemis, Theodore Dalamagas, Eirini Ntoutsi, and Christos Diou.
+\newblock Rhale: robust and heterogeneity-aware accumulated local effects.
+\newblock In {\em ECAI 2023}, pages 859--866. IOS Press, 2023.
+
+\bibitem{gkolemis2023regionally}
+Vasilis Gkolemis, Anargiros Tzerefos, Theodore Dalamagas, Eirini Ntoutsi, and
+  Christos Diou.
+\newblock Regionally additive models: Explainable-by-design models minimizing
+  feature interactions.
+\newblock In {\em Joint European Conference on Machine Learning and Knowledge
+  Discovery in Databases}, pages 433--447. Springer, 2023.
+
+\bibitem{guidotti2018survey}
+Riccardo Guidotti, Anna Monreale, Salvatore Ruggieri, Franco Turini, Fosca
+  Giannotti, and Dino Pedreschi.
+\newblock A survey of methods for explaining black box models.
+\newblock {\em ACM Computing Surveys}, 51(5):1--42, 2018.
+
+\bibitem{hastie1990generalized}
+Trevor Hastie and Robert Tibshirani.
+\newblock {\em Generalized Additive Models}.
+\newblock Chapman and Hall/CRC, 1990.
+
+\bibitem{herbinger2022REPID}
+Julia Herbinger, Bernd Bischl, and Giuseppe Casalicchio.
+\newblock Repid: Regional effect plots with implicit interaction detection.
+\newblock In Gustau Camps-Valls, Francisco J.~R. Ruiz, and Isabel Valera,
+  editors, {\em Proceedings of The 25th International Conference on Artificial
+  Intelligence and Statistics}, volume 151 of {\em Proceedings of Machine
+  Learning Research}, pages 10209--10233. PMLR, March 2022.
+
+\bibitem{herbinger2023leveraging}
+Julia Herbinger, Susanne Dandl, Fiona~K Ewald, Sofia Loibl, and Giuseppe
+  Casalicchio.
+\newblock Leveraging model-based trees as interpretable surrogate models for
+  model distillation.
+\newblock In {\em European Conference on Artificial Intelligence}, pages
+  232--249. Springer, 2023.
+
+\bibitem{herbinger2026granite}
+Julia Herbinger, Gabriel Laberge, Maximilian Muschalik, Yann Pequignot,
+  Marvin~N. Wright, and Fabian Fumagalli.
+\newblock {GRANITE}: A generalized regional framework for identifying agreement
+  in feature-based explanations.
+\newblock In {\em Proceedings of The 29th International Conference on
+  Artificial Intelligence and Statistics (AISTATS)}, volume 300 of {\em
+  Proceedings of Machine Learning Research}, pages 4888--4896. PMLR, 2026.
+
+\bibitem{herbinger2024GADGET}
+Julia Herbinger, Marvin~N Wright, Thomas Nagler, Bernd Bischl, and Giuseppe
+  Casalicchio.
+\newblock Decomposing global feature effects based on feature interactions.
+\newblock {\em Journal of Machine Learning Research}, 25(381):1--65, 2024.
+
+\bibitem{hinton2015distilling}
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean.
+\newblock Distilling the knowledge in a neural network.
+\newblock In {\em NeurIPS Deep Learning and Representation Learning Workshop},
+  2015.
+
+\bibitem{hollmann2022tabpfn}
+Noah Hollmann, Samuel M{\"u}ller, Katharina Eggensperger, and Frank Hutter.
+\newblock Tabpfn: A transformer that solves small tabular classification
+  problems in a second.
+\newblock {\em arXiv preprint arXiv:2207.01848}, 2022.
+
+\bibitem{hooker2007generalized}
+Giles Hooker.
+\newblock Generalized functional {ANOVA} diagnostics for high-dimensional
+  functions of dependent variables.
+\newblock {\em Journal of Computational and Graphical Statistics},
+  16(3):709--732, 2007.
+
+\bibitem{hu2020surrogate}
+Linwei Hu, Jie Chen, Vijayan~N Nair, and Agus Sudjianto.
+\newblock Surrogate locally-interpretable models with supervised machine
+  learning algorithms.
+\newblock {\em arXiv preprint arXiv:2007.14528}, 2020.
+
+\bibitem{ibrahim2023grandslamin}
+Shibal Ibrahim, Gabriel Afriat, Kayhan Behdin, and Rahul Mazumder.
+\newblock {GRAND}-{SLAMIN}’ {Interpretable} {Additive} {Modeling} with
+  {Structural} {Constraints}.
+\newblock {\em Advances in Neural Information Processing Systems},
+  36:61158--61186, December 2023.
+
+\bibitem{uci_ml}
+Markelle Kelly, Rachel Longjohn, and Kolby Nottingham.
+\newblock The uci machine learning repository, 2025.
+
+\bibitem{KRAUS2024IGANN}
+Mathias Kraus, Daniel Tschernutter, Sven Weinzierl, and Patrick Zschech.
+\newblock Interpretable generalized additive neural networks.
+\newblock {\em European Journal of Operational Research}, 317(2):303--316,
+  2024.
+
+\bibitem{laberge2024fdtree}
+Gabriel Laberge, Yann Pequignot, Mario Marchand, and Foutse Khomh.
+\newblock Tackling the {XAI} disagreement problem with regional explanations.
+\newblock In {\em Proceedings of The 27th International Conference on
+  Artificial Intelligence and Statistics (AISTATS)}, volume 238 of {\em
+  Proceedings of Machine Learning Research}, pages 2017--2025. PMLR, 2024.
+
+\bibitem{letham2015stroke}
+Benjamin Letham, Cynthia Rudin, Tyler~H. McCormick, and David Madigan.
+\newblock Interpretable classifiers using rules and bayesian analysis: Building
+  a better stroke prediction model.
+\newblock {\em The Annals of Applied Statistics}, 9(3), 2015.
+
+\bibitem{lipton2018mythos}
+Zachary~C Lipton.
+\newblock The mythos of model interpretability: In machine learning, the
+  concept of interpretability is both important and slippery.
+\newblock {\em Queue}, 16(3):31--57, 2018.
+
+\bibitem{lou2012intelligible}
+Yin Lou, Rich Caruana, and Johannes Gehrke.
+\newblock Intelligible models for classification and regression.
+\newblock In {\em Proceedings of the 18th ACM SIGKDD international conference
+  on Knowledge discovery and data mining}, pages 150--158, 2012.
+
+\bibitem{lou2013accurate}
+Yin Lou, Rich Caruana, Johannes Gehrke, and Giles Hooker.
+\newblock Accurate intelligible models with pairwise interactions.
+\newblock In {\em Proceedings of the 19th ACM SIGKDD international conference
+  on Knowledge discovery and data mining}, pages 623--631, 2013.
+
+\bibitem{lundberg2020local}
+Scott~M. Lundberg, Gabriel Erion, Hugh Chen, Alex DeGrave, Jordan~M. Prutkin,
+  Bala Nair, Ronit Katz, Jonathan Himmelfarb, Nisha Bansal, and Su-In Lee.
+\newblock From local explanations to global understanding with explainable {AI}
+  for trees.
+\newblock {\em Nature Machine Intelligence}, 2(1):56--67, 2020.
+
+\bibitem{mehrabi2021survey}
+Ninareh Mehrabi, Fred Morstatter, Nripsuta Saxena, Kristina Lerman, and Aram
+  Galstyan.
+\newblock A survey on bias and fairness in machine learning.
+\newblock {\em ACM Computing Surveys}, 54(6):1--35, 2021.
+
+\bibitem{molnar2020interpretable}
+Christoph Molnar.
+\newblock {\em Interpretable Machine Learning}.
+\newblock 2020.
+
+\bibitem{murdoch2019interpretable}
+W~James Murdoch, Chandan Singh, Karl Kumbier, Reza Abbasi-Asl, and Bin Yu.
+\newblock Interpretable machine learning: definitions, methods, and
+  applications.
+\newblock {\em arXiv preprint arXiv:1901.04592}, 2019.
+
+\bibitem{nori2019interpretml}
+Harsha Nori, Samuel Jenkins, Paul Koch, and Rich Caruana.
+\newblock Interpretml: A unified framework for interpretable machine learning.
+\newblock {\em arXiv preprint arXiv:1909.09223}, 2019.
+
+\bibitem{oliabev_heloc}
+Averkiy Oliabev.
+\newblock Home equity line of credit ({HELOC}), 2018.
+
+\bibitem{pace1997sparse}
+R.~Kelley Pace and Ronald Barry.
+\newblock Sparse spatial autoregressions.
+\newblock {\em Statistics and Probability Letters}, 33:291--297, 1997.
+
+\bibitem{propublica2016compas}
+ProPublica.
+\newblock Compas data and analysis for 'machine bias', 2016.
+
+\bibitem{radenovic2022neural}
+Filip Radenovic, Abhimanyu Dubey, and Dhruv Mahajan.
+\newblock Neural basis models for interpretability.
+\newblock {\em Advances in Neural Information Processing Systems},
+  35:8414--8426, 2022.
+
+\bibitem{ribeiro2016should}
+Marco~Tulio Ribeiro, Sameer Singh, and Carlos Guestrin.
+\newblock “why should i trust you?”: Explaining the predictions of any
+  classifier.
+\newblock In {\em Proceedings of the 22nd ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, pages 1135--1144. ACM, 2016.
+
+\bibitem{romano2021pmlb}
+Joseph~D Romano, Trang~T Le, William La~Cava, John~T Gregg, Daniel~J Goldberg,
+  Praneel Chakraborty, Natasha~L Ray, Daniel Himmelstein, Weixuan Fu, and
+  Jason~H Moore.
+\newblock Pmlb v1.0: an open source dataset collection for benchmarking machine
+  learning methods.
+\newblock {\em arXiv preprint arXiv:2012.00058v2}, 2021.
+
+\bibitem{rudin2019stop}
+Cynthia Rudin.
+\newblock Stop explaining black box machine learning models for high stakes
+  decisions and use interpretable models instead.
+\newblock {\em Nature machine intelligence}, 1(5):206--215, 2019.
+
+\bibitem{saeed2011mimic}
+Mohammed Saeed, Mauricio Villarroel, Andrew~T. Reisner, Gari Clifford, Li-Wei
+  Lehman, George Moody, Thomas Heldt, Tin~H. Kyaw, Benjamin Moody, and Roger~G.
+  Mark.
+\newblock Multiparameter intelligent monitoring in intensive care ii
+  (mimic-ii): A public-access intensive care unit database.
+\newblock {\em Critical Care Medicine}, 39(5):952--960, 2011.
+
+\bibitem{tan2018distill}
+Sarah Tan, Rich Caruana, Giles Hooker, and Yin Lou.
+\newblock Distill-and-compare: Auditing black-box models using transparent
+  model distillation.
+\newblock In {\em Proceedings of the 2018 AAAI/ACM Conference on AI, Ethics,
+  and Society}, pages 303--310, 2018.
+
+\bibitem{OpenML2013}
+Joaquin Vanschoren, Jan~N. van Rijn, Bernd Bischl, and Luis Torgo.
+\newblock Openml: Networked science in machine learning.
+\newblock {\em SIGKDD Explorations}, 15(2):49--60, 2013.
+
+\bibitem{wood2017generalized}
+Simon~N Wood.
+\newblock {\em Generalized additive models: an introduction with R}.
+\newblock CRC press, 2017.
+
+\bibitem{yang2020gami}
+Zebin Yang, Aijun Zhang, and Agus Sudjianto.
+\newblock Gami-net: An explainable neural network based on generalized additive
+  models with structured interactions.
+\newblock {\em arXiv preprint arXiv:2003.07132}, 2020.
+
+\end{thebibliography}

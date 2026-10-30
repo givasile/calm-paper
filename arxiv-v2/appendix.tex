@@ -1,0 +1,1030 @@
+\section{Conditionally Additive Local Models (CALMs)}
+\label{app:learning-rams}
+
+Algorithm~\ref{alg:calm-training} fits a CALM (Eq.~\eqref{eq:CALM}) to a dataset $\mathcal{D} = \{\xb^{(k)}, y^{(k)}\}_{k=1}^N$ in two steps. Step~1 finds the regions: (a) train a reference model \(f_{\mathtt{ref}}\) on $\mathcal{D}$, (b) propose a partition tree $T_i$ per feature from a heterogeneity measure $H_i$, and (c) select the trees that enter the model. Step~2 fits the shape functions \( \{ f_i^{(r)} \}_{r=1}^{R_i} \) of each feature.
+We detail each step below.
+
+\subsection{Step 1(a): Train a reference model \(f_{\mathtt{ref}}\)}
+
+Any sufficiently accurate model can serve as \(f_{\mathtt{ref}}: \mathbb{R}^d \rightarrow \mathbb{R}\), e.g., gradient-boosted trees (XGBoost, our default), neural networks, random forests, or TabPFN~\cite{hollmann2022tabpfn}.
+
+\subsection{Step 1(b): Propose a partition tree $T_i$ per feature}
+
+We first define the heterogeneity measure $H_i$ (Section~\ref{subsec:heterogeneity-measures}) and relate it to CALM's error in approximating $f_{\texttt{ref}}$. Motivated by this result, we fit a candidate partition tree \(T_i\) for each feature \(i\) whose heterogeneity is at or above the median over all features (Section~\ref{subsec:partition-tree}).
+
+\subsubsection{Heterogeneity $H_i$}
+\label{subsec:heterogeneity-measures}
+
+Interaction-related heterogeneity $H_i$ quantifies the extent to which a feature $x_i$ interacts with all other features \(x_j\), where \(j \in \{1, \ldots, d\} \setminus \{i\}\).
+The computation of $H_i$ is based on the variance of local effects: $h(x_i , \xbi^{(j)})$.
+
+\textbf{Local effect.}
+The local effect $h(x_i , \xbi^{(j)})$ is the change in the output of $f_{\mathtt{ref}}$ when the $i$-th feature of the $j$-th background observation is set to $x_i$.
+Its form depends on the feature-effect method, e.g., Partial Dependence Plot (PDP), SHAP-Dependence Plot (SHAP-DP) or Robust and Heterogeneity-aware ALE (RHALE).
+We use PDP by default:
+
+\begin{equation}
+h\bigl(x_i,\,\mathbf{x}_{-i}^{(j)}\bigr) = 
+f_{\mathtt{ref}}\bigl(x_i,\,\mathbf{x}_{-i}^{(j)}\bigr)
+- c(\mathbf{x}^{(j)}_{-i})
+\end{equation}
+
+where $c(\mathbf{x}^{(j)}_{-i})= \mathbb{E}_{X_i} \left [ f_{\mathtt{ref}}\bigl(X_i,\,\mathbf{x}_{-i}^{(j)}\bigr) \right ]$ is a centering constant.
+For details on alternative approaches, we refer the reader to~\cite{herbinger2024GADGET, herbinger2022REPID}.
+
+\textbf{Correlated features.}
+While PDP can suffer from extrapolation bias under feature correlations, here it is used only for region detection, not for prediction: even biased local effects yield elevated heterogeneity when genuine interactions are present. When correlations are strong, RHALE \citep{gkolemis2023rhale} is a drop-in alternative. A related caveat is that an interaction with one feature can also raise heterogeneity along its correlated proxies, so CALM may split on either; both choices recover the interaction structure, though the conditioning labels may not be uniquely identifiable under strong collinearity, a limitation shared by partition-based interaction detectors such as REPID~\cite{herbinger2022REPID}.
+
+\textbf{Point-wise heterogeneity $H_i(x_i)$.}
+The pointwise heterogeneity (heterogeneity at a specific point $x_i$)
+is then defined as 
+\begin{equation}
+H_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}}\left[\left(h(x_i, \mathbf{X}_{-i}) - \mu_i(x_i)\right)^2\right] = \text{Var}_{\mathbf{X}_{-i}}\left[h(x_i, \mathbf{X}_{-i})\right]
+\end{equation}
+where $\mu_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}}[h(x_i, \mathbf{X}_{-i})]$ is the mean local effect. Inside a region, this heterogeneity takes the form of Eq. \eqref{eq:pointwiseh}.
+
+\textbf{Feature-level heterogeneity $H_i$.}
+Feature-level heterogeneity (heterogeneity of the feature) shows the overall strength of interactions of the feature with all other features, and is defined as the root of the expected pointwise heterogeneity, i.e., the root energy of the 1d curve of pointwise heterogeneity:
+\begin{equation}
+H_i = \sqrt{\mathbb{E}_{X_i}\left[H_i(X_i)\right]} = \sqrt{\mathbb{E}_{X_i}\left[\text{Var}_{\mathbf{X}_{-i}}[h(X_i, \mathbf{X}_{-i})]\right]}
+\end{equation}
+Inside a region this definition takes the form of Eq. \eqref{eq:heterogeneity}.
+The square root places $H_i$ in the units of the output. In the proposition and proof below, the natural object is the squared quantity $H_i^2$, the expected variance of the local effects, and we write it explicitly.
+
+\subsubsection{Heterogeneity and CALM approximation error}
+
+Inside a region, the best single curve for $x_i$ is the average of its local effects, and what this curve misses is exactly the heterogeneity left in the region.
+The proposition below sums these misses over regions and features into a bound on CALM's error in approximating $f_{\texttt{ref}}$, so a split that lowers the heterogeneity lowers the bound, i.e., raises a floor on CALM's $R^2$ with respect to $f_{\texttt{ref}}$; this is what Step~1(b) does.
+For example, in Bike Sharing the effect of the hour differs between working days and days off, so a single curve for the hour misses much of it and its heterogeneity is high; split on working day, each curve fits its own rows and the heterogeneity drops.
+
+\begin{proposition}
+    Let $\mathcal{E} = \mathbb{E}_{\mathbf{X}}\left[\left(f_{\texttt{ref}}(\mathbf{X}) - f_{\texttt{CALM}}(\mathbf{X})\right)^2\right]$ be the mean squared error of the CALM approximation of $f_{\texttt{ref}}$. Assume that $f_{\texttt{ref}}: \mathcal{X} \to \mathbb{R}$ admits a multivariate regionally additive approximation
+\begin{equation*}
+f_{\texttt{ref}}(\mathbf{x}) \approx \beta_0 + \sum_{i = 1}^d\psi_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x})
+\end{equation*}
+such that each $\psi_i^{r_i(\mathbf{x}_{-i})}$ captures the contribution of the $i$-th feature to the function's output (including interactions). Also, assume that there is no error in fitting of the univariate CALM shape functions. For clarity of exposition, the proof treats this approximation as an exact equality; the bound \eqref{eq:error_bound} holds up to the residual approximation variance. Then,
+\begin{equation}
+\min_{f_{\texttt{CALM}}} \mathcal{E} \leq d\sum_{i=1}^{d}\left(\sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}\left(H^{\mathcal{R}_i^{(r)}}_i\right)^2\right)
+\label{eq:error_bound}
+\end{equation}
+where region $\mathcal{R}_i^{(r)}$ is the $r$-th region of the $i$-th feature, $P_{\mathcal{R}_i^{(r)}}$ is the probability mass of the region in the data and $H^{\mathcal{R}_i^{(r)}}_i$ is the heterogeneity of $\psi_i^{\mathcal{R}_i^{(r)}}(\mathbf{x})$ as in Eq.~\eqref{eq:heterogeneity}, with $\psi_i$ in place of the local effect $h$.
+\label{prop:step2}
+\end{proposition}
+
+\begin{proof}
+For the approximation error we have
+\begin{align*}
+\mathcal{E} &= \mathbb{E}_{\mathbf{X}}\left[\left(f_{\texttt{ref}}(\mathbf{X}) - f_{\texttt{CALM}}(\mathbf{X})\right)^2\right] = \mathbb{E}_{\mathbf{X}}\left[\left(\left(\beta_0+ \sum_{i = 1}^d\psi_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x})\right) - \left(\beta_0 + \sum_{i=1}^{d}f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)\right)^2\right]\nonumber \\
+&=\mathbb{E}_{\mathbf{X}}\left[\left(\sum_{i = 1}^d\left(\psi_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x}) - f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)\right)^2\right]
+\leq d\sum_{i=1} ^{d}\mathbb{E}_{\mathbf{X}}\left[\left(\psi_i^{r_i(\mathbf{x}_{-i})}(\mathbf{x}) - f_i^{r_i(\mathbf{x}_{-i})}(x_i)\right)^2\right]
+\end{align*}
+where the last step results from the Jensen's inequality. We therefore have
+\begin{equation}
+\mathcal{E} \leq d\sum_{i=1}^{d}\mathcal{E}^{r_i(\mathbf{x}_{-i})}_i
+ \label{eq:error_approx}
+\end{equation}
+Next, we show that the minimum error achieved for each region is equal to the heterogeneity of the local effects. For any measurable function $g_i(x_i)$ and region $\mathcal{R}$, decompose, using $\mu^{\mathcal{R}}_i(x_i) = \mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[h^{\mathcal{R}}_i(x_i, \mathbf{X}_{-i})\right]$:
+\begin{equation*}
+\psi_i(X_i, \mathbf{X}_{-i}) - g_i(X_i) = \left(\psi_i(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right) + \left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)
+\end{equation*}
+
+Taking expectations inside $\mathcal{R}$ and squaring:
+\begin{align*}
+&\mathbb{E}_{X_i, \mathbf{X}_{-i} \mid \mathbf{X}_{-i}\in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - g_i(X_i)\right)^2\right] \\
+&= \mathbb{E}_{X_i, \mathbf{X}_{-i} \mid \mathbf{X}_{-i}\in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right] \\
+&\quad + \mathbb{E}_{X_i}\left[\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)^2\right] \\
+&\quad + 2\mathbb{E}_{X_i}\left[\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right]\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)\right]
+\end{align*}
+
+The cross-term equals zero because:
+\begin{equation*}
+\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\psi_i^{\mathcal{R}}(x_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(x_i)\right] = \mu^{\mathcal{R}}_i(x_i) - \mu^{\mathcal{R}}_i(x_i) = 0
+\end{equation*}
+by definition of $\mu^{\mathcal{R}}_i$. Therefore:
+\begin{equation*}
+\mathbb{E}_{X_i, \mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - g_i(X_i)\right)^2\right] = \mathcal{E}^{\mathcal{R}}_i + \mathbb{E}_{X_i}\left[\left(\mu^{\mathcal{R}}_i(X_i) - g_i(X_i)\right)^2\right] \geq \mathcal{E}^{\mathcal{R}}_i
+\end{equation*}
+with equality if and only if $g_i = \mu^{\mathcal{R}}_i$ almost surely. This indicates that within each region, $\mu_i^{\mathcal{R}}$ minimizes the approximation error.
+
+Moreover, from the definition of pointwise heterogeneity:
+\begin{equation*}
+H^{\mathcal{R}}_i(x_i) := \mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(x_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(x_i)\right)^2\right]
+\end{equation*}
+
+Taking the expectation over $X_i$:
+\begin{equation*}
+\left(H^{\mathcal{R}}_i\right)^2 = \mathbb{E}_{X_i}\left[H^{\mathcal{R}}_i(X_i)\right] = \mathbb{E}_{X_i}\left[\mathbb{E}_{\mathbf{X}_{-i}\mid \mathbf{X}_{-i} \in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right]\right]
+\end{equation*}
+
+which gives
+\begin{equation*}
+\left(H^{\mathcal{R}}_i\right)^2 = \mathbb{E}_{X_i, \mathbf{X}_{-i}|\mathbf{X}_{-i} \in \mathcal{R}}\left[\left(\psi_i^{\mathcal{R}}(X_i, \mathbf{X}_{-i}) - \mu^{\mathcal{R}}_i(X_i)\right)^2\right] = \min\mathcal{E}_i^{\mathcal{R}}
+\end{equation*}
+i.e., the squared heterogeneity is the minimum approximation error.
+
+Since the squared heterogeneity is the minimum error for each region, we can estimate the feature-level error across regions as
+\begin{equation*}
+\min{\mathcal{E}_i} = \sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}\left(H^{\mathcal{R}_i^{(r)}}_i\right)^2
+\end{equation*}
+where $P_{\mathcal{R}_i^{(r)}}$ is the probability mass of region $\mathcal{R}_i^{(r)}$.
+
+Using this result with Eq. \eqref{eq:error_approx}, we have
+
+\begin{equation*}
+\min_{f_{\texttt{CALM}}} \mathcal{E} \leq d\sum_{i=1}^{d}\left(\sum_{r=1}^{R_i}P_{\mathcal{R}_i^{(r)}}\left(H^{\mathcal{R}_i^{(r)}}_i\right)^2\right)
+\end{equation*}
+
+\end{proof}
+
+\begin{remark}
+The switch from the conditional expectation $\mathbb{E}_{X_i \mid \mathbf{X}_{-i} \in \mathcal{R}}$ to the marginal $\mathbb{E}_{X_i}$ in the second term of the decomposition above implicitly assumes $X_i \perp \mathbf{X}_{-i} \mid \mathbf{X}_{-i} \in \mathcal{R}$ within each region. This is the standard assumption underlying PDP-style decompositions and is shared by all feature-effect methods that use the marginal distribution of $X_i$.
+\end{remark}
+
+The bound links heterogeneity to the error of a single curve inside a region, which motivates splitting on it. The additive approximation of $f_{\texttt{ref}}$ is the usual assumption of feature-effect methods, and the local effects and their heterogeneity are used only to find the regions, not to estimate $f_{\texttt{ref}}$.
+
+\subsubsection{Heterogeneity estimation}
+
+For heterogeneity estimation, denote with $\mathcal{I} \subseteq \{1, \ldots, N\} $ the index set of active background instances considered in the heterogeneity calculation i.e., those that reside in region $\mathcal{R}^{(r_i(\mathbf{x}_{-i}))}_i$ of the $i$-th instance.
+Then, the point-wise heterogeneity at feature value $x_i$ over $\mathcal{I}$ can be estimated by
+
+\begin{equation}\label{eq:point-wise-heterogeneity}
+\hat{H}_i^{\mathcal{I}}(x_i) = \frac{1}{|\mathcal{I}|}\sum_{j \in \mathcal{I}} \left ( h(x_i , \xbi^{(j)}) - \mu(x_i) \right )^2 \text{, where } \mu(x_i)=\frac{1}{|\mathcal{I}|} \sum_{j \in \mathcal{I}} h(x_i , \xbi^{(j)})
+\end{equation}
+
+Eq.\eqref{eq:point-wise-heterogeneity} quantifies the strength of the interactions of the $i$-th feature, at position $x_i$, as 
+the variance of the local effects at $x_i$.
+To obtain a global measure of these interactions, we average the pointwise heterogeneity over a grid of $M$ values $\{ {\tilde{x}_i^{(m)}} \}_{m=1}^M$ sampled from the domain of $x_i$:
+\begin{equation}
+\label{eq:heter-definition}
+\hat{H}_i^{\mathcal{I}} = \sqrt{\frac{1}{M} \sum_{m=1}^M \hat{H}_i^{\mathcal{I}}(\tilde{x}_i^{(m)})}.
+\end{equation}
+The square root returns the heterogeneity to the units of the output, so that $\hat{H}_i^{\mathcal{I}}$ is the typical deviation of a local effect from the average effect over $\mathcal{I}$; the relative drop of Eq.~\eqref{eq:heter-drop} below is computed on this scale.
+
+\subsubsection{Computing the partition tree $T_i$ for each feature.}
+\label{subsec:partition-tree}
+
+\begin{algorithm}[tb]
+\caption{Fitting a Partition Tree $T_i$ for Feature $x_i$}
+\label{alg:fit-tree}
+\begin{algorithmic}[1]
+   \STATE {\bfseries Input:} $f_{\text{ref}}$, $\mathcal{D} = \{(\mathbf{x}^{(k)}, y^{(k)})\}_{k=1}^N$; {\bfseries Parameters:} max depth $d_{\max}$, threshold $\epsilon$, grid size $M=20$
+   \STATE {\bfseries Output:} Binary tree $T_i$
+   \STATE
+   \STATE {\bfseries function} \textsc{BuildTree}(node $\nu$, depth $\ell$, active indices $\mathcal{I}$)
+   \IF{$\ell = d_{\max}$}
+      \STATE \textbf{return} $\nu$ \COMMENT{Stop splitting}
+   \ENDIF
+   \STATE Compute $H_i^{\mathcal{I}}$ using Eq.\eqref{eq:heter-definition}
+   \STATE Initialize: $\Delta H_{\max} \leftarrow 0$
+   \FOR{each feature $j \neq i$}
+      \STATE Determine candidate thresholds $\mathcal{T}_j$ \COMMENT{Default: Unique values if $x_j$ categorical, else $M$-grid (default: $M=20$)}
+      \FOR{each $\tau \in \mathcal{T}_j$}
+        \IF{$x_j$ is numerical}
+            \STATE $\mathcal{I}_L \leftarrow \{k \in \mathcal{I} : x_j^{(k)} \leq \tau\}$, $\mathcal{I}_R \leftarrow \mathcal{I} \setminus \mathcal{I}_L$
+        \ELSE[$x_j$ is categorical]
+            \STATE $\mathcal{I}_L \leftarrow \{k \in \mathcal{I} : x_j^{(k)} = \tau\}$, $\mathcal{I}_R \leftarrow \mathcal{I} \setminus \mathcal{I}_L$
+        \ENDIF
+         \STATE Compute $\Delta H_i$ using Eq.~\eqref{eq:heter-drop}
+         \IF{$\Delta H_i > \Delta H_{\max}$}
+            \STATE $\Delta H_{\max} \leftarrow \Delta H_i$, Store $(j, \tau) $ as optimal split
+         \ENDIF
+      \ENDFOR
+   \ENDFOR
+   \IF{$\Delta H_{\max} > \epsilon$}
+      \STATE Split node $\nu$ into $\nu_L, \nu_R$ using optimal $(j, \tau)$
+      \STATE $\nu_L \leftarrow$ \textsc{BuildTree}($\nu_L, \ell + 1, \mathcal{I}_L$)
+      \STATE $\nu_R \leftarrow$ \textsc{BuildTree}($\nu_R, \ell + 1, \mathcal{I}_R$)
+   \ENDIF
+   \STATE \textbf{return} $\nu$
+   \STATE {\bfseries end function}
+\end{algorithmic}
+\end{algorithm}
+
+For each feature \(x_i\) whose heterogeneity \(\hat{H}_i\) over the full training data is at or above the median over all features, we construct a binary tree \(T_i\) of maximum depth \(d_{\max}\); the remaining features keep a single global shape function.
+At each internal node of the tree, we evaluate candidate binary splits on every other feature \(x_j\), \(j \neq i\).
+The best split is the one with the largest heterogeneity drop: a candidate split partitions the current instances $\mathcal{I}$ into $\mathcal{I}_L$ and $\mathcal{I}_R$, and
+\begin{equation}
+\label{eq:heter-drop}
+\Delta H_i = \frac{H_i^{\mathcal{I}} - \left ( \frac{|\mathcal{I}_L|}{|\mathcal{I}|}H_i^{\mathcal{I}_L} + \frac{|\mathcal{I}_R|}{|\mathcal{I}|}H_i^{\mathcal{I}_R}  \right )}{H_i^{\mathcal{I}}}
+\end{equation}
+
+where \(H_i^{\mathcal{I}_L}\) and \(H_i^{\mathcal{I}_R}\) are the heterogeneities of \(x_i\) on the two children, weighted by their share of the instances.
+The drop is relative, so the threshold $\epsilon$ reads as a fraction: we use $\epsilon = 0.05$, i.e., a split must reduce the heterogeneity of the node by at least $5\%$ on the standard-deviation scale of Eq.~\eqref{eq:heter-definition}.
+A split is also rejected if either child would contain fewer than $10$ training instances.
+For numerical conditioning features we evaluate $M = 20$ equally spaced candidate thresholds; for categorical conditioning features we evaluate one-vs-rest splits over the observed levels.
+
+The procedure for fitting the tree $T_i$ is given in Algorithm \ref{alg:fit-tree}.
+
+\subsection{Step 1(c): Select the trees to keep}
+\label{subsec:selection}
+
+The trees of Section~\ref{subsec:partition-tree} are proposed one feature at a time and are therefore candidates: an interaction between $x_i$ and $x_j$ raises the heterogeneity of both features, so both trees typically split on each other, although one of them suffices to express the interaction.
+Applying every candidate double-counts such interactions in the regional curves; the resulting model is larger and can be \emph{less} faithful to $f_{\texttt{ref}}$ than a model that keeps only one of the two trees.
+We therefore select the subset $\mathcal{S}$ of trees that enter the model by greedy forward selection on an additive surrogate of $f_{\texttt{ref}}$.
+
+\textbf{The surrogate.}
+For a candidate set $\mathcal{S}$, every feature contributes the average local effect of $f_{\texttt{ref}}$ computed in Section~\ref{subsec:heterogeneity-measures}: the global curve $\mu_i(x_i)$ if $i \notin \mathcal{S}$, and the regional curve $\mu_i^{\mathcal{R}_i^{(r)}}(x_i)$ of the region $\mathcal{R}_i^{(r)}$ that $\xbi$ falls in if $i \in \mathcal{S}$.
+Each curve is centered over the instances it applies to, so that the curves carry only shape.
+What the curves leave over is absorbed by a piecewise-constant offset $c_{\mathcal{S}}(\xb)$: a global intercept plus one coefficient per region of every tree in $\mathcal{S}$ (one region per tree is dropped to keep the design full rank), fitted jointly by least squares to the residual of the curves on the training data.
+With a single tree the offsets reduce to the per-region means of the residual; with several trees the joint fit assigns a shared mean shift once, rather than to each overlapping region.
+The surrogate is $g_{\mathcal{S}}(\xb) = c_{\mathcal{S}}(\xb) + \sum_{i=1}^d \mu_i^{\mathcal{R}_i(\xbi)}(x_i)$, in the notation of Eq.~\eqref{eq:surrogate-r2}, and its fidelity is
+\begin{equation}
+\label{eq:surrogate-r2-app}
+R^2(\mathcal{S}) = 1 - \frac{\frac{1}{N}\sum_{k=1}^N \left(f_{\texttt{ref}}(\xb^{(k)}) - g_{\mathcal{S}}(\xb^{(k)})\right)^2}{\mathrm{Var}_k\left[f_{\texttt{ref}}(\xb^{(k)})\right]},
+\end{equation}
+which may be negative and is not clamped.
+$R^2(\emptyset)$ is the fidelity of the GAM surrogate, and $R^2(\mathcal{S}) - R^2(\emptyset)$ is what the trees in $\mathcal{S}$ add.
+Scoring a candidate set requires no further evaluations of $f_{\texttt{ref}}$: the curves are read from the local effects already computed for the heterogeneity.
+
+\textbf{Greedy forward selection.}
+Algorithm~\ref{alg:select-trees} starts from $\mathcal{S} = \emptyset$ and, in each round, scores every remaining candidate on top of the trees already accepted.
+The candidate with the largest $R^2(\mathcal{S} \cup \{i\})$ is accepted if its gain over $R^2(\mathcal{S})$ is at least $\gamma$; otherwise the procedure stops.
+It also stops when the next acceptance would exceed the cap $K$ on the number of conditional interactions, counted as one per (feature, conditioning feature) pair appearing in the accepted trees; a capped selection is therefore a prefix of the uncapped one.
+Because each gain is measured on top of the current set, the gains of the accepted trees sum exactly to $R^2(\mathcal{S}) - R^2(\emptyset)$, and a candidate whose interaction is already expressed by an accepted tree shows a gain close to zero.
+Rejected candidates are recorded with the reason: \emph{redundant} if their gain is close to zero, \emph{below threshold} if it is real but smaller than $\gamma$, or the cap that stopped the sequence.
+In all experiments, $\gamma = 0.01$, i.e., a tree must explain at least one additional percentage point of the variance of $f_{\texttt{ref}}$, and $K$ is unconstrained.
+
+\begin{algorithm}[tb]
+\caption{Selecting the trees to keep}
+\label{alg:select-trees}
+\begin{algorithmic}[1]
+   \STATE {\bfseries Input:} candidate trees $\{T_i\}_{i \in \mathcal{C}}$, local effects of $f_{\texttt{ref}}$ on $\mathcal{D}$; {\bfseries Parameters:} gain threshold $\gamma$, cap $K$ (optional)
+   \STATE {\bfseries Output:} the set $\mathcal{S} \subseteq \mathcal{C}$ of trees that enter the model
+   \STATE $\mathcal{S} \leftarrow \emptyset$, $\rho \leftarrow R^2(\emptyset)$ \COMMENT{the GAM surrogate, Eq.~\eqref{eq:surrogate-r2-app}}
+   \WHILE{$\mathcal{C} \setminus \mathcal{S} \neq \emptyset$}
+      \STATE $i^\star \leftarrow \arg\max_{i \in \mathcal{C} \setminus \mathcal{S}} R^2(\mathcal{S} \cup \{i\})$ \COMMENT{score every candidate on top of $\mathcal{S}$}
+      \IF{$R^2(\mathcal{S} \cup \{i^\star\}) - \rho < \gamma$}
+         \STATE \textbf{break} \COMMENT{no candidate clears the gain threshold}
+      \ENDIF
+      \IF{$K$ is set and the conditional interactions of $\mathcal{S} \cup \{i^\star\}$ exceed $K$}
+         \STATE \textbf{break} \COMMENT{the cap stops the sequence}
+      \ENDIF
+      \STATE $\mathcal{S} \leftarrow \mathcal{S} \cup \{i^\star\}$, $\rho \leftarrow R^2(\mathcal{S})$
+   \ENDWHILE
+   \STATE \textbf{return} $\mathcal{S}$
+\end{algorithmic}
+\end{algorithm}
+
+The output of the selection is a sequence of models, from the GAM surrogate to the final CALM, with the gain of every accepted tree and the reason for every rejected one.
+We report it alongside each fitted model, since it states in one table which interactions the model carries and what each of them contributes to the fidelity to $f_{\texttt{ref}}$.
+
+\subsection{Step 2: Fit the shape functions}
+
+A GAM is fitted by round-robin gradient boosting \cite{friedman2001greedy}: each iteration updates one shape function \(f_i\) on the current residuals of the whole dataset (Algorithm~\ref{alg:gb-gam}, as in~\cite{lou2012intelligible}).
+
+\begin{algorithm}[tb]
+\caption{Gradient Boosting for GAM}
+\label{alg:gb-gam}
+\begin{algorithmic}[1]
+   \STATE Initialize $f_i \leftarrow 0$ for all $i = 1, \dots, d$
+   \FOR{$m = 1$ {\bfseries to} $M$}
+      \FOR{$i = 1$ {\bfseries to} $d$}
+         \STATE $\mathcal{E} \leftarrow \{(x^{(j)}_i, y^{(j)} - f_{\text{GAM}}(\mathbf{x}^{(j)})\}_{j=1}^N$ \COMMENT{Compute partial residuals}
+         \STATE Learn shaping function $S : x_i \rightarrow \mathbb{R}$ using $\mathcal{E}$ \COMMENT{Fit shape function}
+         \STATE $f_i \leftarrow f_i + \eta S$ \COMMENT{Update with learning rate $\eta$}
+      \ENDFOR
+   \ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+For a CALM, each update of \(f_i^{(r)}\) uses only the instances in its region \(\mathcal{R}_i^{(r)}\), so that it captures only the behaviour of \(x_i\) there (Algorithm~\ref{alg:gb-calm}).
+
+\begin{algorithm}[tb]
+\caption{Gradient Boosting for CALM}
+\label{alg:gb-calm}
+\begin{algorithmic}[1]
+   \STATE Initialize $\beta_0 \leftarrow \frac{1}{N}\sum_{j=1}^N y^{(j)}$; $f_i^{(r)} \leftarrow 0$ for all $i = 1, \dots, d$ and $r = 1, \dots, R_i$
+   \FOR{$m = 1$ {\bfseries to} $M$}
+      \FOR{$i = 1$ {\bfseries to} $d$}
+         \FOR{$r = 1$ {\bfseries to} $R_i$}
+            \STATE $\mathcal{E} \leftarrow \{(x^{(j)}_i, y^{(j)} - f_{\text{CALM}}(\mathbf{x}^{(j)})) : \mathbf{x}^{(j)}_{-i} \in \mathcal{R}_i^{(r)}\}$
+            \COMMENT{Filter by region $\mathcal{R}_i^{(r)}$}
+            \STATE Learn shaping function $S : x_i \rightarrow \mathbb{R}$ using $\mathcal{E}$
+            \STATE $f_i^{(r)} \leftarrow f_i^{(r)} + \eta S$ \COMMENT{Update regional shape function}
+         \ENDFOR
+      \ENDFOR
+      \STATE \textbf{Center:} for all $i$, let $c_i \leftarrow \frac{1}{N}\sum_{j=1}^N f_i^{(r_i(\mathbf{x}^{(j)}_{-i}))}(x_i^{(j)})$; set $f_i^{(r)} \leftarrow f_i^{(r)} - c_i$ for all $r$ and $\beta_0 \leftarrow \beta_0 + c_i$ \COMMENT{Eq.~\eqref{eq:centering}; fitted values unchanged}
+   \ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Theoretical analysis of Step~2}
+\label{app:step3-theory}
+
+This section formalizes the claims made in Step~2 of the main text.
+We show that, under squared loss and fixed region-selection trees, (i) the
+population target of Step~2 is an $L_2(P_{\mathbf{X}})$-best approximation of the true regression
+function onto the CALM function class, and (ii) an idealized exact version of the
+algorithm converges to the corresponding empirical risk minimizer.
+
+Consider the CALM score function
+\begin{equation}
+s(\xb)
+=
+\beta_0
++
+\sum_{i=1}^d f_i^{(r_i(\mathbf{X}_{-i}))}(x_i),
+\label{eq:calm-score}
+\end{equation}
+where the region-selection functions $\{r_i\}$ (or equivalently the trees
+$\{T_i\}$) are treated as fixed.
+Let
+\[
+m(\xb)=\mathbb{E}[Y\mid \mathbf{X}=\xb]
+\]
+denote the true regression function.
+We assume regression with identity link and squared loss, and $\mathbb{E}[Y^2]<\infty$.
+We restrict attention to scores $s\in L_2(P_{\mathbf{X}})$ (hence $m\in L_2(P_{\mathbf{X}})$).
+
+The representation~\eqref{eq:calm-score} is not unique: every $\xb$ activates exactly one curve per feature, so adding a constant to all curves of feature $i$ and subtracting it from $\beta_0$ leaves $s$ unchanged.
+As in GAMs, we fix this constant by the centering condition
+\begin{equation}
+\mathbb{E}\!\left[
+f_i^{(r_i(\mathbf{X}_{-i}))}(X_i)
+\right]=0
+\quad
+\text{for all } i,
+\label{eq:centering}
+\end{equation}
+which moves the mean contribution of each feature into $\beta_0$ and leaves the level of every region inside its curve.
+The condition is imposed per feature, not per region: centering each $f_i^{(r)}$ within its own region would also remove the region levels, which a single intercept cannot absorb, and would therefore shrink the class.
+Constants can still move between the curves of $x_i$ and the terms of another feature whenever the indicator of a region of $x_i$ can also be expressed by those terms (e.g., a region defined by a single split on $x_j$, which $f_j$ can absorb as a step).
+Such moves change neither $s$ nor any prediction difference; the results below concern $s$ and do not require the components to be unique.
+
+Let $\mathcal H(\{T_i\})$ denote the class of all CALM score functions of the form
+\eqref{eq:calm-score}.
+With the trees fixed, it is a linear space, hence convex; we assume $\mathcal H(\{T_i\})\subset L_2(P_{\mathbf{X}})$ is closed.
+Condition~\eqref{eq:centering} selects a representation of each $s\in\mathcal H(\{T_i\})$ and does not restrict the class.
+
+\subsubsection{Population target}
+
+\begin{proposition}[Population optimality]
+\label{prop:population}
+There exists at least one minimizer
+\[
+s^\star
+\in
+\arg\min_{s\in\mathcal H(\{T_i\})}
+\mathbb{E}[(Y-s(\mathbf{X}))^2],
+\]
+and it satisfies
+\[
+s^\star
+\in
+\arg\min_{s\in\mathcal H(\{T_i\})}
+\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2].
+\]
+In particular,
+\[
+\mathbb{E}[(Y-s^\star(\mathbf{X}))^2]
+-
+\mathbb{E}[(Y-m(\mathbf{X}))^2]
+=
+\mathbb{E}[(m(\mathbf{X})-s^\star(\mathbf{X}))^2].
+\]
+\end{proposition}
+
+\begin{proof}
+For any measurable function $s$,
+\[
+Y-s(\mathbf{X})
+=
+(Y-m(\mathbf{X}))+(m(\mathbf{X})-s(\mathbf{X})).
+\]
+Taking squares and expectations yields
+\[
+\mathbb{E}[(Y-s(\mathbf{X}))^2]
+=
+\mathbb{E}[(Y-m(\mathbf{X}))^2]
++
+\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2],
+\]
+since $\mathbb{E}[Y-m(\mathbf{X})\mid \mathbf{X}]=0$ eliminates the cross-term.
+The first term does not depend on $s$, so minimizing prediction error over
+$\mathcal H(\{T_i\})$ is equivalent to minimizing
+$\mathbb{E}[(m(\mathbf{X})-s(\mathbf{X}))^2]$.
+Existence of $s^\star$ follows since $\mathcal H(\{T_i\})\subset L_2(P_{\mathbf{X}})$ is nonempty, closed, and convex.
+Moreover, $s^\star$ is unique as an element of $L_2(P_{\mathbf{X}})$, being the projection of $m$ onto a closed convex set; its components are unique only up to the moves described above.
+\end{proof}
+
+\textbf{Interpretation.}
+Proposition~\ref{prop:population} shows that, with fixed regions, Step~2 computes an $L_2(P_{\mathbf{X}})$-best approximation of the true regression function $m$ within the
+CALM function class.
+Any remaining error is therefore purely due to the structural limitations of
+the chosen regions and univariate components, not to the optimization procedure.
+
+\subsubsection{Empirical convergence of exact Step~2}
+
+Given i.i.d.\ data $\{(x^{(k)},y^{(k)})\}_{k=1}^N$, define the empirical risk
+\[
+\widehat{\mathcal R}_N(s)
+=
+\frac{1}{N}\sum_{k=1}^N (y^{(k)}-s(x^{(k)}))^2.
+\]
+
+\begin{proposition}[Convergence of exact cyclic regional backfitting]
+\label{prop:empirical}
+Assume fixed trees and squared loss.
+Consider an idealized version of Step~2 that cyclically updates each
+$f_i^{(r)}$ by exactly minimizing $\widehat{\mathcal R}_N$ over that function
+using only samples with $r_i(\mathbf{x}^{(k)}_{-i})=r$, followed by the empirical version of~\eqref{eq:centering}: the sample mean $\frac{1}{N}\sum_{k=1}^N f_i^{(r_i(\mathbf{x}^{(k)}_{-i}))}(x_i^{(k)})$ of feature $i$'s contribution is subtracted from every curve of $x_i$ and added to $\beta_0$, so that fitted values (and hence $\widehat{\mathcal R}_N$) are unchanged.
+Then $\widehat{\mathcal R}_N$ is non-increasing along the iterates, and the
+procedure converges (in empirical $L_2$) to a limit $\hat s\in\arg\min_{s\in\mathcal H(\{T_i\})}\widehat{\mathcal R}_N(s)$.
+Moreover, the fitted-value vector $(\hat s(\mathbf{x}^{(1)}),\ldots,\hat s(\mathbf{x}^{(N)}))$ is unique.
+\end{proposition}
+
+\begin{proof}
+With fixed trees, the CALM score is linear in the collection of shape functions
+$\{f_i^{(r)}\}$ evaluated on the data, and $\widehat{\mathcal R}_N$ is a convex
+quadratic function of these parameters.
+On the finite sample, $\widehat{\mathcal R}_N$ depends on each $f_i^{(r)}$ only through the finite vector
+$\{f_i^{(r)}(x_i^{(k)}): r_i(\mathbf{x}_{-i}^{(k)})=r\}$, so the problem can be viewed as a finite-dimensional least-squares problem.
+Each regional update solves the exact least-squares problem for one block of
+parameters while holding the others fixed, and therefore cannot increase
+$\widehat{\mathcal R}_N$.
+Although regions overlap across features, all updates jointly optimize a single
+global objective.
+Standard results for cyclic block coordinate descent on convex quadratics imply
+convergence to a global minimizer, and the minimizing fitted values are unique by strict convexity of the quadratic loss in the fitted-value vector.
+The centering step changes no fitted value; it only fixes the constant of each feature.
+\end{proof}
+
+\textbf{Interpretation.}
+This result shows that Step~2 is not a collection of independent local fits.
+Instead, it performs a coupled optimization of a single additive predictor with
+region-gated components, analogous to classical backfitting for GAMs.
+Under exact updates, this procedure is guaranteed to converge to the best CALM
+fit for the given data and fixed regions.
+
+\newpage
+\section{Formal Proofs for Interpretability Properties}
+\label{app:interpretability}
+
+This appendix provides formal characterizations and proofs for the interpretability properties discussed in Section~\ref{subsec:interpretability-properties}. For each property, we define it precisely and analyze whether it can be answered exactly under  \gam, \gamm, and \method{}.
+
+\textbf{Note on link functions.} Properties P1--P3 are stated and proved for the additive linear predictor $\eta(\xb) = \beta_0 + \sum_i f_i^{(r_i(\xbi))}(x_i)$. With a non-identity link $g$ (Eq.~\eqref{eq:CALM}), they hold on $\eta$, the scale on which the model is additive; monotonicity (P3) also carries over to $\hat{y} = g^{-1}(\eta)$ for any increasing $g^{-1}$ (e.g., logit, log).
+
+\begin{proposition}[Local Feature Contribution]
+
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function, and fix an input \( \xb = (x_1, \dots, x_d) \in \mathbb{R}^d \). For each index \( i \in \{1, \dots, d\} \), we define the local contribution \( \phi_i(\xb) \in \mathbb{R} \) as a function intended to represent the contribution of feature \( x_i \) to the output \( \hat{y}(\xb) \). We analyze whether such a decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb)
+\]
+is uniquely determined by the structure of the model.
+
+\textbf{(A) In \gam.}
+Assume the model has the additive form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \). Then for all \( i \in \{1, \dots, d\} \),
+\[
+\phi_i(\xb) := f_i(x_i)
+\]
+is well-defined, and
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb).
+\]
+
+\textbf{(B) In \gamm.}
+Assume the model includes pairwise interactions:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j) + \sum_{j<k} f_{jk}(x_j, x_k),
+\]
+where each \( f_j : \mathbb{R} \to \mathbb{R} \) and \( f_{jk} : \mathbb{R}^2 \to \mathbb{R} \). Then, unless every \( f_{jk} \) is additively separable, there is no decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb)
+\]
+with each \( \phi_i(\xb) \) depending only on \( x_i \); decompositions whose \( \phi_i \) also depend on other features exist (e.g., assign each \( f_{jk} \) to one of its two features) but are not unique.
+
+\textbf{(C) In \method{}.}
+Assume the model has the form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where for each \( j \), \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) is a region selector and \( f_j^{(r)} : \mathbb{R} \to \mathbb{R} \) is a univariate shape function for region \( r \). Here \( \xbj := \xb \setminus x_j \in \mathbb{R}^{d-1} \).
+
+Then for all \( i \in \{1, \dots, d\} \),
+\[
+\phi_i(\xb) := f_i^{(r_i(\xbi))}(x_i)
+\]
+is well-defined, and
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb).
+\]
+\end{proposition}
+
+\begin{proof}
+We examine each case separately.
+
+\textbf{(A) In \gam.} By direct substitution, the prediction is an additive sum of univariate functions, each depending only on a single feature \( x_j \). Thus the contribution of feature \( x_i \) is read off the model as \( f_i(x_i) \), and the decomposition is exact. 
+
+\textbf{(B) In \gamm.} Suppose, for contradiction, that there exists a decomposition
+\[
+\hat{y}(\xb) = \sum_{i=1}^d \phi_i(\xb),
+\]
+where each \( \phi_i : \mathbb{R}^d \to \mathbb{R} \) represents the contribution of feature \( x_i \) and depends only on \( x_i \), i.e., \( \phi_i(\xb) = \phi_i(x_i) \).
+
+Then each interaction term \( f_{jk}(x_j, x_k) \) must be split between \( \phi_j \) and \( \phi_k \) in such a way that the total sum remains correct and additive over individual features. This is only possible if \( f_{jk} \) is additively separable, i.e., if there exist functions \( g_j, g_k : \mathbb{R} \to \mathbb{R} \) such that
+\[
+f_{jk}(x_j, x_k) = g_j(x_j) + g_k(x_k).
+\]
+However, the model does not constrain \( f_{jk} \) to be separable. In the general case, \( f_{jk} \) is non-separable and depends jointly on \( x_j \) and \( x_k \).
+
+Therefore, no decomposition \( \sum_i \phi_i(x_i) \) can reproduce the prediction \( \hat{y}(\xb) \) using only univariate terms. The contributions \( \phi_i(\xb) \) are not uniquely determined by the model, and must rely on external assumptions or post-hoc attribution methods.
+
+ \textbf{(C) In \method{}.} For a fixed input \( \xb \), each region function \( r_j(\xbj) \) returns a unique region index in \( \{1, \dots, R_j\} \). The corresponding function \( f_j^{(r_j(\xbj))} \) is applied to \( x_j \), yielding a scalar. Thus, the contribution of feature \( x_i \) is precisely defined as:
+\[
+\phi_i(\xb) := f_i^{(r_i(\xbi))}(x_i),
+\]
+and the model prediction is recovered by summing over all features:
+\[
+\hat{y}(\xb) = \sum_{i=1}^d f_i^{(r_i(\xbi))}(x_i) = \sum_{i=1}^d \phi_i(\xb). 
+\]
+\end{proof}
+As in any additive model, the components, and hence the \( \phi_i \), are defined only up to moves of constants that leave \( \hat{y} \) unchanged, which the centering of Eq.~\eqref{eq:centering} fixes up to the moves described in Appendix~\ref{app:step3-theory}; the point of P1 is that in \gam{} and \method{} the contributions are read off the fitted model, whereas in \gamm{} they must be constructed post hoc.
+
+The second property asks: \emph{How does the prediction change if we perturb a single feature \( x_i \) while keeping all others fixed?} The answer differs across \gam, \gamm, and \method{}, as shown below.
+
+\begin{proposition}[Regional Feature Sensitivity]
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function. Fix an input \( \xb \in \mathbb{R}^d \), an index \( i \in \{1, \dots, d\} \), and a perturbation \( \varepsilon > 0 \). Define the prediction change under perturbation of \( x_i \) as
+\[
+\Delta \hat{y} := \hat{y}(\xb + \varepsilon \mathbf{e}_i) - \hat{y}(\xb).
+\]
+We analyze how \( \Delta \hat{y} \) can be computed in \gam, \gamm, and \method{}.
+
+\textbf{(A) In \gam.}
+Assume the model has the additive form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \) univariate. Then
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i).
+\]
+
+\textbf{(B) In \gamm.}
+We show that in \gamm, the change \( \Delta \hat{y} \) caused by perturbing \( x_i \) depends on the values of the features \( x_j \) that interact with \( x_i \), and thus, in general, cannot be computed from \( x_i \) alone.
+
+\textbf{(C) In \method{}:} We show that the change in prediction \( \Delta \hat{y} := \hat{y}(\xb + \varepsilon \mathbf{e}_i) - \hat{y}(\xb) \) is computable from \( x_i \) alone if no region transitions are triggered in other features. Otherwise, the change depends in general on \( \xbi \).
+
+\end{proposition}
+
+\begin{proof}
+
+\textit{Note:} The proposition is stated for a fixed input $\xb$ (single-valued); the set-valued definition of P2 in the main text arises by ranging over all possible values of $\xbi$, each of which selects a region $r_i(\xbi) \in \{1, \dots, R_i\}$ and thus one element of the set $\{\Delta f_i^{(r)}\}_{r=1}^{R_i}$.
+
+\textbf{(A) In \gam.}
+Since all other features remain unchanged, and their contributions are independent of \( x_i \), we have
+\[
+\hat{y}(\xb + \varepsilon \mathbf{e}_i) = \sum_{j \neq i} f_j(x_j) + f_i(x_i + \varepsilon),
+\]
+\[
+\hat{y}(\xb) = \sum_{j \neq i} f_j(x_j) + f_i(x_i),
+\]
+and therefore
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i). 
+\]
+
+\textbf{(B) In \gamm.}
+Let \( \mathcal{J} := \{ j \ne i \mid f_{ij}(x_i, x_j) \text{ is present in the model} \} \), i.e., the set of features that interact with \( x_i \). Since only \( x_i \) is perturbed, all other features remain unchanged. The only affected terms are the univariate function \( f_i(x_i) \) and the interaction terms \( f_{ij}(x_i, x_j) \) for each \( j \in \mathcal{J} \). All other terms in the model remain constant.
+
+The prediction after perturbation is:
+\[
+\hat{y}(\xb + \varepsilon \mathbf{e}_i) = f_i(x_i + \varepsilon) + \sum_{j \ne i} f_j(x_j) + \sum_{j \in \mathcal{J}} f_{ij}(x_i + \varepsilon, x_j) + C,
+\]
+and before perturbation:
+\[
+\hat{y}(\xb) = f_i(x_i) + \sum_{j \ne i} f_j(x_j) + \sum_{j \in \mathcal{J}} f_{ij}(x_i, x_j) + C,
+\]
+where \( C := \sum_{j<k,\, j,k \ne i} f_{jk}(x_j, x_k) \) denotes the interaction terms not involving \( x_i \), which are unaffected.
+
+Subtracting, we obtain:
+\[
+\Delta \hat{y} = f_i(x_i + \varepsilon) - f_i(x_i) + \sum_{j \in \mathcal{J}} \left[ f_{ij}(x_i + \varepsilon, x_j) - f_{ij}(x_i, x_j) \right].
+\]
+
+Since this expression depends on \( x_j \) for \( j \in \mathcal{J} \), it cannot, in general, be computed from \( x_i \) alone. 
+
+\textbf{(C) In \method{}.}
+Assume the model has the form
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) assigns a region index to each feature \( j \) based on the context \( \xbj := \xb \setminus x_j \), and \( f_j^{(r)} : \mathbb{R} \to \mathbb{R} \) is the shape function for region \( r \).
+
+Let \( \xbi = \xb \setminus x_i \), and define the perturbation \( x_i \mapsto x_i + \varepsilon \). Then
+\[
+\Delta \hat{y} = f_i^{(r_i(\xbi))}(x_i + \varepsilon) - f_i^{(r_i(\xbi))}(x_i)
++ \sum_{j \ne i} \left[ f_j^{(r_j(\xbj^{+\varepsilon}))}(x_j) - f_j^{(r_j(\xbj))}(x_j) \right],
+\]
+where \( \xbj^{+\varepsilon} := \xbj \) with \( x_i \mapsto x_i + \varepsilon \) (since \( x_i \in \xbj \) for all \( j \ne i \)).
+
+\textit{Case 1: No region transitions in other features.}
+Assume that for all \( j \ne i \), we have \( r_j(\xbj^{+\varepsilon}) = r_j(\xbj) \). Then:
+\[
+\Delta \hat{y} = f_i^{(r_i(\xbi))}(x_i + \varepsilon) - f_i^{(r_i(\xbi))}(x_i).
+\]
+This case is fully interpretable from the function \( f_i^{(r)} \) alone.
+It holds for every \( \xbi \) when no tree \( T_j \), \( j \ne i \), splits on \( x_i \) at a threshold in \( [x_i, x_i + \varepsilon) \), i.e., when the perturbation crosses no vertical line of the plot.
+
+\textit{Case 2: Region transitions occur in other features.}
+If for some \( j \ne i \), the region function changes: \( r_j(\xbj^{+\varepsilon}) \ne r_j(\xbj) \), then the additional terms contribute:
+\[
+\Delta f_j := f_j^{(r_j(\xbj^{+\varepsilon}))}(x_j) - f_j^{(r_j(\xbj))}(x_j).
+\]
+Hence, the total change includes not only the direct shift in \( f_i \), but also discrete region-based changes in other features and the value of \( \Delta \hat{y} \) cannot, in general, be recovered from \( x_i \) alone. 
+\end{proof}
+
+The third property asks whether increasing a feature always increases the model's prediction, regardless of the values of other features. In other words, does the model treat the feature as globally monotonic?
+
+\begin{proposition}[Global Feature Monotonicity]
+
+Let \( \hat{y} : \mathbb{R}^d \to \mathbb{R} \) be a prediction function, and fix a feature index \( i \in \{1, \dots, d\} \). Define the global monotonicity condition for feature \( x_i \) as follows: the model is said to be \emph{globally increasing in \( x_i \)} if for all \( \xb \in \mathbb{R}^d \) and all \( \delta > 0 \),
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) \ge \hat{y}(\xb),
+\]
+and \emph{strictly increasing} if the inequality is strict.
+
+We analyze whether this property can be verified from the structure of the model.
+
+\textbf{(A) In \gam.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j),
+\]
+with each \( f_j : \mathbb{R} \to \mathbb{R} \).
+
+Then the model is globally increasing in \( x_i \) if and only if \( f_i \) is monotonically increasing.
+
+\textbf{(B) In \gamm.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j(x_j) + \sum_{j<k} f_{jk}(x_j, x_k).
+\]
+
+Then global monotonicity in \( x_i \) cannot be determined from \( f_i \) alone.
+
+\textbf{(C) In \method{}.}
+Assume the model has the form:
+\[
+\hat{y}(\xb) = \sum_{j=1}^d f_j^{(r_j(\xbj))}(x_j),
+\]
+where \( r_j : \mathbb{R}^{d-1} \to \{1, \dots, R_j\} \) is a region selector, and \( \xbj := \xb \setminus x_j \).
+
+Then global monotonicity in \( x_i \) holds  if the following two conditions are satisfied:
+\begin{enumerate}
+  \item For all regions \( r \in \{1, \dots, R_i\} \), the function \( f_i^{(r)} : \mathbb{R} \to \mathbb{R} \) is increasing.
+  \item For all \( j \ne i \) and all values of the features other than \( x_i \), the function \( x_i \mapsto f_j^{(r_j(\xbj))}(x_j) \) is non-decreasing; i.e., region transitions caused by changing \( x_i \) do not decrease \( f_j \)'s contribution.
+\end{enumerate}
+
+\end{proposition}
+
+\begin{proof}
+
+\textbf{(A) In \gam.}
+Since the model is additive and each term depends only on a single variable, we have:
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb) = f_i(x_i + \delta) - f_i(x_i).
+\]
+Thus, \( \hat{y}(\xb + \delta \mathbf{e}_i) \ge \hat{y}(\xb) \) if and only if \( f_i \) is increasing. 
+
+\textbf{(B) In \gamm.}  As in case (A), \( f_i(x_i + \delta) - f_i(x_i) \) gives the direct contribution. However, for each \( j \ne i \), the term \( f_{ij}(x_i, x_j) \) also contributes. The total change is:
+\[
+\hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb) = f_i(x_i + \delta) - f_i(x_i)
++ \sum_{j \ne i} \left[ f_{ij}(x_i + \delta, x_j) - f_{ij}(x_i, x_j) \right].
+\]
+The sign of this expression depends on the values of \( x_j \), and therefore cannot be determined from \( f_i \) alone. Consequently, verifying global monotonicity in \( x_i \) requires knowing the full interaction structure and input values. 
+
+\textbf{(C) In \method{}.}
+Let \( \xb \in \mathbb{R}^d \) and \( \delta > 0 \). Define:
+\[
+\Delta \hat{y} := \hat{y}(\xb + \delta \mathbf{e}_i) - \hat{y}(\xb).
+\]
+Then:
+\[
+\Delta \hat{y} =
+f_i^{(r_i(\xbi))}(x_i + \delta) - f_i^{(r_i(\xbi))}(x_i)
++ \sum_{j \ne i} \left[
+f_j^{(r_j(\xbj^{+\delta}))}(x_j) - f_j^{(r_j(\xbj))}(x_j)
+\right],
+\]
+where \( \xbj^{+\delta} \) is obtained by replacing \( x_i \mapsto x_i + \delta \) in \( \xbj \).
+
+The first term is non-negative if \( f_i^{(r)} \) is increasing for all regions \( r \), and the region \( r_i(\xbi) \) is fixed.
+
+The second term is a sum over changes in other features' contributions due to possible changes in their regions \( r_j \); under condition 2, each of them is non-negative.
+
+Therefore, if both conditions are satisfied, every term is non-negative, implying \( \Delta \hat{y} \ge 0 \).
+The conditions are sufficient but not necessary: a downward jump can be offset by an increase of \( f_i^{(r)} \) at the same point. 
+
+\end{proof}
+
+\newpage
+\section{Detailed Experiments}\label{app:detailed-experiments}
+\renewcommand{\floatpagefraction}{0.85}\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.6}\renewcommand{\textfraction}{0.07}
+
+\subsection{Experimental Setup Details}
+\textbf{Reporting convention.}
+As in Section~\ref{sec:empirical-evaluation}, we report mean $\pm$ standard deviation over 5-fold cross-validation.
+
+\textbf{Implementations.} We used open-source implementations for all baselines: \href{https://xgboost.readthedocs.io/en/release_3.0.0/python/index.html}{XGBoost}, \href{https://www.tensorflow.org/}{tensorflow} (NAM), \href{https://interpret.ml/docs/}{interpretml} (EBM, EB$^2$M), and the official repositories for \href{https://github.com/zzzace2000/nodegam}{NODE-GA$^2$M}\cite{chang2022node} and \href{https://github.com/ZebinYang/gaminet}{GAMI‐Net}\cite{yang2020gami}.
+
+\label{app:datasets-model-details}
+\begin{table}[!htbp]
+\centering
+\small
+\caption{The 24 real-world datasets: number of rows, number of features and source.}
+\label{tab:datasets}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lrrl c lrrl}
+\toprule
+\multicolumn{4}{c}{\textbf{Classification (10)}} & & \multicolumn{4}{c}{\textbf{Regression (14)}} \\
+\cmidrule(lr){1-4}\cmidrule(lr){6-9}
+Dataset & Rows & Features & Source & & Dataset & Rows & Features & Source \\
+\midrule
+Adult & 45\,222 & 13 & UCI~\cite{uci_ml} & & Ailerons & 13\,750 & 39 & OpenML~\cite{OpenML2013} \\
+Appendicitis & 106 & 7 & PMLB~\cite{romano2021pmlb} & & Airfoil & 1\,503 & 5 & OpenML~\cite{OpenML2013} \\
+Bank & 45\,211 & 16 & UCI~\cite{uci_ml} & & Bike Sharing & 17\,379 & 11 & UCI~\cite{uci_ml} \\
+Churn & 5\,000 & 19 & PMLB~\cite{romano2021pmlb} & & California Housing & 20\,640 & 8 & \cite{pace1997sparse} \\
+COMPAS & 6\,167 & 9 & \cite{propublica2016compas} & & CCPP & 9\,568 & 4 & UCI~\cite{uci_ml} \\
+HELOC & 10\,459 & 23 & \cite{oliabev_heloc} & & Elevators & 16\,599 & 18 & OpenML~\cite{OpenML2013} \\
+Magic & 19\,020 & 10 & UCI~\cite{uci_ml} & & Energy & 19\,735 & 28 & \cite{luism78_energydata, candanedo2017energy} \\
+MIMIC2 & 24\,508 & 17 & \cite{saeed2011mimic} & & No2 & 500 & 7 & OpenML~\cite{OpenML2013} \\
+Phoneme & 5\,404 & 5 & PMLB~\cite{romano2021pmlb} & & Parkinsons Motor & 5\,875 & 19 & UCI~\cite{uci_ml} \\
+SPECTF & 349 & 44 & PMLB~\cite{romano2021pmlb} & & Parkinsons Total & 5\,875 & 19 & UCI~\cite{uci_ml} \\
+ & & &  & & Sensory & 576 & 11 & OpenML~\cite{OpenML2013} \\
+ & & &  & & Seoul Bike & 8\,465 & 14 & UCI~\cite{uci_ml} \\
+ & & &  & & Skill Craft & 3\,338 & 19 & UCI~\cite{uci_ml} \\
+ & & &  & & Wine & 6\,497 & 11 & UCI~\cite{uci_ml} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\textbf{Dataset details.}
+Table~\ref{tab:datasets} lists the 10 classification and 14 regression datasets with their size and source.
+
+\textbf{Data preprocessing.}
+All input features are standardized using z-score normalization. For regression tasks, the target variable $y$ is also standard scaled. The only exception is the GAMI-Net model, which requires input features to be scaled using min-max normalization.
+For RMSE, predictions and targets are inverse-transformed to the original scale prior to evaluation.
+
+\textbf{Model configurations.}
+
+The black box is XGBoost with 300 boosting rounds, a learning rate of 0.1 and the log-loss evaluation metric for classification; \method{} uses the same model as its reference model.
+
+The GAMs are NAM and EBM without interactions. The Neural Additive Model (NAM) builds one independent multilayer perceptron per feature; each sub-network has three hidden layers of 100,100 and 10 ReLU units followed by a linear output, and the additive sum is passed through a sigmoid for binary classification. Training uses Adam (learning rate 0.001), for 10 epochs and a mini-batch size of 32. The Explainable Boosting Machine (EBM) is used without interaction terms by explicitly setting $n\_interactions=0$.
+
+To capture pairwise interactions we experiment with three GA\textsuperscript{2}M variants. EB\textsuperscript{2}M extends the EBM by enabling interactions with a default strength of 0.9; NODE‑GA\textsuperscript{2}M activates its interaction mode via the ga2m=1 flag and restricts training to a five‑minute time limit to ensure parity with the other models; this cap was chosen to match the practical training budget of competing methods, and we observed that NODE‑GA\textsuperscript{2}M's training loss had largely plateaued within this window on most datasets where the cap was reached; GAMI‑Net is run with the default hyper‑parameters.
+
+For \method{}, we use trees of maximum depth $d_{\max} = 2$, a heterogeneity drop threshold of $\epsilon = 0.05$ on the standard-deviation scale of Eq.~\eqref{eq:heter-definition}, a selection threshold of $\gamma = 0.01$, and no cap $K$ on the number of conditional interactions (Section~\ref{subsec:selection}). Heterogeneity is measured with PDP; the detector evaluates 20 candidate split points per numerical conditioning feature and one-vs-rest splits for categorical ones, with at least 10 instances per leaf. The shape functions of Step~2 are fitted with an EBM without interactions.
+
+\textbf{Computer resources.} XGBoost, EBM, EB$^2$M and \method{} were run on a laptop (Intel Core i7-10750H, 10 CPU threads); NAM, NODE-GA$^2$M and GAMI-Net are reported as submitted, from an earlier run on a server (Intel Core i9-10900X, 128 GB of RAM). No GPU was used.
+
+\subsection{Synthetic Examples}\label{app:synthetic}
+Table~\ref{tab:explanatory-example-r2} gives the accuracy that Figure~\ref{fig:shape_functions} prints under each case, with its spread over the folds.
+
+\begin{table}[!htbp]
+\centering
+\caption{Synthetic examples: $R^2$ comparison
+(mean $\pm$ std. dev. over 5-fold CV).}
+\label{tab:explanatory-example-r2}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset} & GAM & \gamm & \method{} \\
+\midrule
+Case 1 & $0.731_{\pm0.027}$ & $0.979_{\pm0.010}$ & $0.991_{\pm0.006}$ \\
+Case 2 & $0.476_{\pm0.061}$ & $0.711_{\pm0.039}$ & $0.990_{\pm0.008}$ \\
+Case 3 & $0.531_{\pm0.023}$ & $0.972_{\pm0.006}$ & $0.958_{\pm0.012}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Main Results, per Dataset}\label{app:main-tables}
+Tables~\ref{tab:clf-acc} and~\ref{tab:regr-rmse} give the comparison of Figure~\ref{fig:dumbbell} for every baseline. In regression the \gamm's extra gain over \method{} is beyond the band on eight datasets and exceeds five points on seven of them (Airfoil, Bike Sharing, Seoul Bike, California Housing, Elevators, Energy, CCPP); on Parkinsons Motor \method{} is ahead, and on the remaining five the two are within a fold's spread. In classification every difference but Phoneme, Magic and Bank is inside the band.
+
+\begin{table}[!htbp]
+\caption{Classification accuracy vs.\ baselines (mean $\pm$ std.\ dev.\ over 5-fold CV).
+\textbf{\ding{51}}/\textbf{\ding{55}}: higher/lower than \method{} by more than one std.\ dev.\ (the larger of the two);
+\textbf{$\mathbf{=}$}: within one.}
+\label{tab:clf-acc}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Dataset} & \textbf{BB} & \multicolumn{2}{c}{\textbf{GAM}} & \textbf{\method{}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4} \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & & \textbf{EB$^2$M} & \textbf{NODE} & \textbf{GAMI} \\
+\midrule
+\input{generated/tab_clf_rows}
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Regression RMSE vs.\ baselines (mean $\pm$ std.\ dev.\ over 5-fold CV).
+\textbf{\ding{51}}/\textbf{\ding{55}}: lower/higher than \method{} by more than one std.\ dev.\ (the larger of the two);
+\textbf{$\mathbf{=}$}: within one.
+Elevators and Ailerons are scaled; NAM, NODE-GA$^2$M and GAMI-Net there are as submitted, to one significant digit, and count as draws.}
+\label{tab:regr-rmse}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Dataset} & \textbf{BB} & \multicolumn{2}{c}{\textbf{GAM}} & \textbf{\method{}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4} \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} & & \textbf{EB$^2$M} & \textbf{NODE} & \textbf{GAMI} \\
+\midrule
+\input{generated/tab_regr_rows}
+\end{tabular}}
+\end{table}
+
+\subsection{Complexity}\label{app:interactions}
+
+\input{tradeoff_figure}
+Figure~\ref{fig:tradeoff} plots the counts of Figure~\ref{fig:dumbbell} against the gains: what each model asks a reader to inspect beyond the GAM, against what it gains over it.
+Tables~\ref{tab:classification_interactions} and~\ref{tab:regression_interactions} give the counts per dataset.
+For \method{}, the conditional interactions are $\sum_i |S_i|$, where $S_i$ is the set of features that split the tree $T_i$, and the added curves are those beyond the GAM's one per feature, one per split.
+On average, \method{} uses 6.8 conditional interactions in classification and 6.6 in regression and adds 7.9 and 8.2 curves, against 15.2 and 14.3 pairs for EB$^2$M; NODE-GA$^2$M uses 97.7 and 88.7 pairs, GAMI-Net its default of 20.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{Complexity per dataset, classification: \method{}'s conditional interactions and added curves, and the pairs of each \gamm{}.}
+  \label{tab:classification_interactions}
+    \begin{tabular}{lccccc}
+      \toprule
+      & \multicolumn{2}{c}{\textbf{\method{}}} & & & \\
+      \cmidrule(lr){2-3}
+      \textbf{Dataset} & \textbf{interactions} & \textbf{curves} & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+      \midrule
+      \input{generated/tab_clf_inter_rows}
+    \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \caption{Complexity per dataset, regression: \method{}'s conditional interactions and added curves, and the pairs of each \gamm{}.}
+  \label{tab:regression_interactions}
+    \begin{tabular}{lccccc}
+      \toprule
+      & \multicolumn{2}{c}{\textbf{\method{}}} & & & \\
+      \cmidrule(lr){2-3}
+      \textbf{Dataset} & \textbf{interactions} & \textbf{curves} & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+      \midrule
+      \input{generated/tab_regr_inter_rows}
+    \end{tabular}
+\end{table}
+
+\subsection{Sensitivity to hyperparameters}\label{app:sensitivity}
+We vary one hyperparameter at a time, the others at their defaults, and compare each variant with the default \method{} by the rule of Section~\ref{sec:empirical-evaluation}.
+
+\textbf{Selection threshold.}
+Halving $\gamma$ changes no result and adds about two conditional interactions; doubling it loses on Bike Sharing and Seoul Bike and removes about 1.5 (Table~\ref{tab:sens-gamma}).
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{minipage}[t]{0.47\textwidth}
+\centering
+\caption{Halving and doubling $\gamma$ against the default $\gamma = 0.01$: wins, draws and losses of the variant, and the mean change in conditional interactions.}
+\label{tab:sens-gamma}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{llcc}
+\toprule
+$\gamma$ & task & W / D / L & $\Delta$ interactions \\
+\midrule
+0.005 & classification & 0 / 10 / 0 & $+1.7$ \\
+      & regression     & 0 / 14 / 0 & $+2.1$ \\
+0.02  & classification & 0 / 10 / 0 & $-1.8$ \\
+      & regression     & 0 / 12 / 2 & $-1.5$ \\
+\bottomrule
+\end{tabular}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.5\textwidth}
+\centering
+\caption{Share of the GAM-to-XGBoost gap closed by depth (median and quartiles over the datasets with a gap), and the median number of conditional interactions over all datasets.}
+\label{tab:sens-depth}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{cccccc}
+\toprule
+& \multicolumn{2}{c}{classification (5 of 10)} & & \multicolumn{2}{c}{regression (12 of 14)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){5-6}
+$d_{\max}$ & gap closed & interactions & & gap closed & interactions \\
+\midrule
+1 & 17\,\% (10–17) & 2.5 & & 17\,\% (2–42) & 1.9 \\
+2 & 31\,\% (27–36) & 6.9 & & 37\,\% (8–55) & 4.5 \\
+3 & 41\,\% (35–44) & 10.8 & & 49\,\% (13–64) & 9.6 \\
+\bottomrule
+\end{tabular}}
+\end{minipage}
+\end{table}
+
+\textbf{Depth.}\label{app:depth-ladder}
+Table~\ref{tab:sens-depth} gives the share of the GAM-to-XGBoost gap that \method{} closes at $d_{\max} = 1, 2, 3$, over the datasets where XGBoost beats the GAM by more than half a fold's standard deviation; Table~\ref{tab:depth-ladders} continues to $d_{\max} = 6$ on four datasets.
+Figure~\ref{fig:ladder} shows the same feature of the same dataset at three partition depths. Every level closes more of the gap to the black box and doubles the curves a reader has to hold: two curves answer the questions of \S\ref{subsec:interpretability-properties} at a glance, eight no longer do. The default $d_{\max} = 2$ is where most of the gain has arrived and the plot is still read as a few named regions.
+
+\input{ladder_figure}
+
+\begin{table}[!htbp]
+\centering
+\caption{Depth ladders: score (mean $\pm$ std.\ dev.\ over 5-fold CV; RMSE for Bike Sharing, accuracy otherwise) and conditional interactions (\#) at $d_{\max} = 1, \ldots, 6$. Gap closed at $d_{\max} = 1, \ldots, 6$: Bike Sharing 43, 62, 71, 78, 83, 85\,\%; Bank 17, 36, 44, 55, 53, 64\,\%; Phoneme 10, 31, 41, 43, 45, 59\,\%; Adult has no gap to close.}
+\label{tab:depth-ladders}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+& \multicolumn{2}{c}{\textbf{Bike Sharing}} & \multicolumn{2}{c}{\textbf{Adult}} & \multicolumn{2}{c}{\textbf{Bank}} & \multicolumn{2}{c}{\textbf{Phoneme}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+$d_{\max}$ & RMSE & \# & accuracy & \# & accuracy & \# & accuracy & \# \\
+\midrule
+\input{generated/tab_depth_ladder_rows}
+\end{tabular}}
+\end{table}
+
+\subsection{Runtime}
+
+Tables~\ref{tab:clf-time-def} and~\ref{tab:regr-time-def} give the fit time of each model. \method{}'s time is end to end, from training the reference model to fitting the shape functions of Step~2. The columns taken from the submitted version were measured on other hardware (Section~\ref{app:datasets-model-details}) and compare only with each other.
+
+\begin{table}[!htbp]
+\caption{Runtime (seconds), classification. XGB, EBM, \method{}: one fit (fold 0) on the laptop; NAM, EB$^2$M, NODE-GA$^2$M, GAMI-Net: as submitted, mean $\pm$ std.\ dev.\ over 5 folds on the server.}
+\label{tab:clf-time-def}
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{2}{c}{\textbf{GAM}} & \multicolumn{1}{c}{\textbf{\method{}}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4}  \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} &   & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+\midrule
+\input{generated/tab_clf_time_rows}
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Runtime (seconds), regression. Sources as in Table~\ref{tab:clf-time-def}.}
+\label{tab:regr-time-def}
+\centering
+\small
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Dataset} & \multicolumn{1}{c}{\textbf{BlackBox}} & \multicolumn{2}{c}{\textbf{GAM}} & \multicolumn{1}{c}{\textbf{\method{}}} & \multicolumn{3}{c}{\textbf{GA$^2$M}} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-4}  \cmidrule(lr){6-8}
+& \textbf{XGB} & \textbf{NAM} & \textbf{EBM} &   & \textbf{EB$^2$M} & \textbf{NodeGA$^2$M} & \textbf{GAMINet} \\
+\midrule
+\input{generated/tab_regr_time_rows}
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{User Study}\label{app:user-study}
+
+\textbf{Study overview.}
+We conducted a within-subjects user study ($N=25$) to evaluate the practical interpretability of CALMs. Participants ranged from novices to experts in machine learning and data analysis. The survey was anonymous, collected no personal data, asked for informed consent and was not paid; under our institution's policy, such a study is exempt from ethics-committee review.
+The CALM questions came first, with a warm-up on a synthetic model, and the GA$^2$M appeared only on Bike Sharing; presentation order and dataset complexity were not counterbalanced, so the comparison should be read with this caveat.
+
+\textbf{Participant expertise.}
+Participants self-reported their level of expertise using a 5-point scale ranging from no experience to expert.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/user_study_app/expertise_question.png}
+    \caption{Self-reported expertise question used to assess participant background.}
+    \label{fig:expertise}
+\end{figure}
+
+\textbf{Interpretation protocol.}
+Before starting the tasks, participants were provided with standardized instructions on how to interpret conditional feature plots. These instructions explained how to:
+(i) select the appropriate curve based on feature conditions,
+(ii) read feature contributions directly from the plot, and
+(iii) account for interaction-induced discontinuities when estimating changes.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/user_study_app/instructions.png}
+    \caption{Instruction panel provided to participants for interpreting conditional feature plots.}
+    \label{fig:instructions}
+\end{figure}
+
+\textbf{Task design.}
+Participants completed tasks targeting two aspects of interpretability: estimating feature contributions for specific inputs and reasoning about how predictions change under feature perturbations.
+
+\textbf{Example questions.}
+Figure~\ref{fig:question_contribution} shows a representative example of the questions used in the study. The full questionnaire is available at \url{https://forms.gle/tTippi5eJ6cZHrfy9}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{images/user_study_app/q_contribution.png}
+    \caption{Example question requiring estimation of feature contribution from a conditional plot.}
+    \label{fig:question_contribution}
+\end{figure}
+
+\textbf{Evaluation metrics.}
+Every question is multiple choice with one correct option, so grading is automatic: an answer is correct if and only if it selects that option.
+We evaluate performance using three metrics: task accuracy (percentage of correct answers), accuracy on prediction change tasks, and user experience, measured via self-reported ease of use and confidence.
+
+\textbf{Results.}
+On the five warm-up questions on the synthetic model, participants answered $83.2\%$ correctly with CALM. On real-world tasks, CALM significantly outperformed heatmap-based representations in overall task performance ($54\%$ vs.\ $34\%$, $p < 0.05$), driven by the question of how long the hour takes to lower the prediction by 50 rentals ($40\%$ vs.\ $12\%$, $p < 0.05$; $68\%$ vs.\ $56\%$ on the other). The advantage holds among the 13 participants who rated themselves advanced or expert ($65.4\%$ vs.\ $30.8\%$, Wilcoxon $p = 0.031$), and accuracy with the GA$^2$M does not rise with self-reported expertise (Spearman $\rho = -0.29$, $p = 0.14$).
+
+Participants also rated CALM as easier to use ($p < 0.01$) and more confidence-inducing ($p < 0.001$), indicating improved usability alongside stronger objective performance.
+
+\newpage
