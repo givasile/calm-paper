@@ -12,6 +12,7 @@ they were produced. `calm-paper compare` checks every new cell against them.
 | `environment.txt` | the Python environment of those runs |
 
 These runs were made with an earlier, unreleased development version of the
-engine (the `effector-calm` line in `environment.txt`). Rerun from scratch on
+engine (the `effector` line in `environment.txt`: commit `84d70b5` of a
+private fork, `effector` 0.5.0). Rerun from scratch on
 the released `calm-additive==0.1.0` and `effector==0.6.0`, every cell that has
 a counterpart here matches within 5e-5 (`results/COMPARE.txt`).

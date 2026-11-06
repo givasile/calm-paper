@@ -17,7 +17,8 @@ results, and the scripts that turn them into the paper's tables and figures.
 | [`code/`](code/) | everything that runs, and its results — start at [`code/README.md`](code/README.md) |
 | [`paper/`](paper/) | the paper's LaTeX source and [PDF](paper/main.pdf); its tables (`paper/generated/`) and figures come from `code/` |
 | [`arxiv-v2/`](arxiv-v2/) | the source uploaded to arXiv as v2: the paper without the NeurIPS checklist |
-| [`poster/`](poster/) | the NeurIPS 2026 poster: LaTeX source and [PDF](poster/main.pdf); its figures are the paper's |
+| [`arxiv-v3/`](arxiv-v3/) | the source uploaded to arXiv as v3: the NeurIPS camera-ready without the checklist |
+| [`poster/`](poster/) | the NeurIPS 2026 poster: LaTeX source, [PDF](poster/main.pdf), [PNG](poster/calm_poster.png) and [thumbnail](poster/calm_poster_thumbnail.png); its figures are the paper's |
 
 ```bash
 cd code

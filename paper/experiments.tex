@@ -1,4 +1,4 @@
-On the real-world datasets, we compare \method{} with the XGBoost black box, two GAMs (NAM and EBM) and two \gamms{}: EB$^2$M (EBM with pairwise interactions) and NODE-GA$^2$M.
+On the real-world datasets, we compare \method{} with the XGBoost black box~\cite{chen2016xgboost}, two GAMs (NAM and EBM) and two \gamms{}: EB$^2$M (EBM with pairwise interactions) and NODE-GA$^2$M.
 We report accuracy for classification and RMSE for regression, and count a win or a loss only when two means differ by more than the larger of their standard deviations over the folds, a draw otherwise.
 Figure~\ref{fig:dumbbell} shows what each model gains over the GAM on every dataset, and Tables~\ref{tab:clf-acc} and~\ref{tab:regr-rmse} (Appendix~\ref{app:main-tables}) give every baseline with its spread, including GAMI-Net.
 \input{dumbbell_figure}
@@ -21,7 +21,7 @@ Against the \gamms{}, it is competitive on most datasets, but it still trails: i
 We attribute this gap, like the one to XGBoost, to \method{}'s stricter constraint: one-dimensional curves instead of two-dimensional surfaces.
 
 \textbf{Complexity.}\label{sec:complexity}
-We measure the complexity of a \method{} in two quantities: (i) the conditional interactions of Section~\ref{subsec:model-overview}, the features $x_j$ that are part of the partition tree $T_i$ of $x_i$ (Appendix~\ref{app:interactions}) and (ii) the number of curves it adds to the GAM, which we compare with a \gamm{}'s pairs and surfaces.
+We measure the complexity~\cite{molnar2020quantifying} of a \method{} in two quantities: (i) the conditional interactions of Section~\ref{subsec:model-overview}, the features $x_j$ that are part of the partition tree $T_i$ of $x_i$ (Appendix~\ref{app:interactions}) and (ii) the number of curves it adds to the GAM, which we compare with a \gamm{}'s pairs and surfaces.
 For (i), \method{} uses 6.6 conditional interactions on average in regression and 6.8 in classification (Tables~\ref{tab:classification_interactions} and~\ref{tab:regression_interactions}); for (ii), it adds 8.2 and 7.9 curves (Fig.~\ref{fig:dumbbell}, left of each row).
 EB$^2$M fits 14.3 and 15.2 pairs, one surface each.
 These numbers come from \method{}'s default configuration, which puts no cap on the number of interactions.
@@ -62,7 +62,7 @@ full structure & 71\,\% & 81\,\% & 68\,\% & 80\,\% \\
 \vspace{-1em}
 \end{wraptable}
 We assess the stability of \method{}: does refitting it return similar trees?
-This matters when \method{} is used not only to predict with an interpretable-by-design model, but also to learn about the process that generated the data.
+This matters when \method{} is used not only to predict with an interpretable-by-design model, but also to learn about the process that generated the data~\cite{philipp2018measuring, freiesleben2024scientific}.
 We therefore refit \method{} on the 5 cross-validation folds (each on 80\,\% of the rows) and on 20 bootstrap resamples, and ask three questions of increasing strictness: (i) is the feature split at all (the \emph{interaction verdict}), (ii) on which feature is its root split (the \emph{root conditioner}), and (iii) is its whole tree the same (the root and the depth-2 conditioners, the \emph{full structure}); ``not split'' counts as an answer.
 Each question is asked separately of each of the 376 features of the 24 datasets.
 Table~\ref{tab:stability} gives the share of features on which all 5 refits agree, or at least 4; the bootstrap shares are averaged over 4 disjoint groups of 5 resamples.
@@ -70,6 +70,6 @@ On whether a feature is split, 77\,\% of the features agree across all five fold
 Where a rule recurs, its threshold barely moves: over the 88 rules found in at least 3 of the 5 folds, the median spread of the threshold is 0.08 standard deviations of the feature, and 73\,\% stay within 0.2.
 
 \subsection{User study}\label{sec:user-study}
-In an online study, 25 participants, from novices to experts in machine learning (13 self-reported advanced or expert), answered questions on the effect of the hour in a Bike Sharing model, once from \method{}'s conditional curves and once from a \gamm{}'s main effect and heatmaps: how the prediction changes when the hour moves.
+In an online study, 25 participants, from novices to experts in machine learning (13 self-reported advanced or expert), answered questions on the effect of the hour in a Bike Sharing model, once from \method{}'s conditional curves and once from a \gamm{}'s main effect and heatmaps~\cite{hegselmann2020evaluation}: how the prediction changes when the hour moves~\cite{hase2020evaluating}.
 Participants answered 54\,\% of the questions correctly with \method{} and 34\,\% with the \gamm{} ($p<0.05$), and the gap is widest on the question of how long the hour takes to lower the prediction (40\,\% vs.\ 12\,\%).
-The advantage holds among the 13 advanced or expert participants, for whom heatmaps are standard tooling (65.4\,\% vs.\ 30.8\,\%, Wilcoxon $p=0.031$), and accuracy with the \gamm{} does not rise with expertise (Spearman $\rho=-0.29$, $p=0.14$); Appendix~\ref{app:user-study} gives the design, the questions and the grading.
+The advantage holds among the 13 advanced or expert participants, for whom heatmaps are standard tooling (65.4\,\% vs.\ 30.8\,\%, Wilcoxon $p=0.031$), and accuracy with the \gamm{} does not rise with expertise (Spearman $\rho=-0.29$, $p=0.14$); Appendix~\ref{app:user-study} gives the design, the questions and the grading. Order and dataset were not counterbalanced.

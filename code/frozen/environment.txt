@@ -29,7 +29,7 @@ debugpy==1.8.21
 decorator==5.3.1
 defusedxml==0.7.1
 dill==0.4.1
--e file:///home/givasile/github/packages/effector-calm
+effector @ git+https://github.com/givasile/effector-calm@84d70b5f291ca80773ead1a7b6025644241bce1c
 executing==2.2.1
 fastjsonschema==2.21.2
 flask==3.1.3

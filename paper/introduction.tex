@@ -1,17 +1,17 @@
 In high-stakes decision making, models must provide not only reliable predictions but also human-understandable explanations \cite{murdoch2019interpretable, doshi2017towards}. 
-This has motivated \emph{interpretable-by-design} models, whose structure permits direct inspection of their behavior \cite{molnar2020interpretable}.
-Interpretability, however, is not a yes-or-no property but a continuum: interpretable-by-design models range from more to less interpretable, and gains in predictive accuracy often come at the cost of greater structural complexity \cite{rudin2019stop, lipton2018mythos}.
+This has motivated \emph{interpretable-by-design} models, whose structure permits direct inspection of their behavior \cite{rudin2019stop, molnar2020interpretable}.
+Interpretability, however, is not a yes-or-no property but a continuum: interpretable-by-design models range from more to less interpretable, and gains in predictive accuracy often come at the cost of greater structural complexity \cite{lipton2018mythos, Hammann2025xVSacc}.
 
 \input{concept_figure}
 
-This trade-off is evident in GAMs~\cite{lou2012intelligible} and their extension, \gamms~\cite{caruana2015intelligible}.
+This trade-off is evident in GAMs~\cite{lou2012intelligible} and their extension, \gamms~\cite{lou2013accurate, caruana2015intelligible}.
 GAMs model the prediction as a sum of univariate effects, which makes them highly interpretable but blind to feature interactions which limits their accuracy.
-\gamms~gain accuracy by adding selected pairwise interactions, but the interaction terms cost them two interpretability properties \cite{radenovic2022neural}:
+\gamms~gain accuracy by adding selected pairwise interactions, but the interaction terms cost them two interpretability properties \cite{radenovic2022neural, xiong2026neural}:
 (i) a prediction no longer splits into one contribution per feature, because an interaction term belongs to two features jointly, and
 (ii)~global auditing is hard to do visually: a feature's effect is spread over its univariate and bivariate terms, so no single plot shows how the feature affects the prediction (see Section~\ref{subsec:interpretability-properties}).
 
 We introduce \emph{Conditionally Additive Local Models (CALMs)}, a model class that narrows this trade-off: it stays close to GAMs in interpretability and close to \gamms~in accuracy.
-The core idea is to learn \emph{conditional feature effects}: several univariate effects per feature, each active in a region of the input space where the feature is nearly additive, i.e., barely interacts with other features.
+The core idea is to learn \emph{conditional feature effects}~\cite{hastie1993varying, berger2019tree}: several univariate effects per feature, each active in a region of the input space where the feature is nearly additive~\cite{hooker2004discovering}, i.e., barely interacts with other features.
 The regions are defined by threshold conditions on the features it interacts with.
 Figure~\ref{fig:concept-image} shows a CALM fitted on the Bike Sharing dataset~\cite{fanaee2014event} and Figure~\ref{fig:hero} compares it with a GAM and a \gamm.
 
@@ -23,8 +23,8 @@ The CALM thus captures the interaction while keeping (i) one contribution per fe
 
 We fit CALMs with a three-step distillation pipeline:
 (1) train a black-box reference model that captures the interactions in the data;
-(2) for each feature, grow a CART-style tree~\cite{herbinger2022REPID} that splits the input space into regions of reduced interaction, then greedily keep the trees that matter most for reproducing the reference model's predictions;
-(3) fit one curve per region with a region-aware backfitting.
+(2) for each feature, grow a CART-style tree~\cite{breiman1984cart, herbinger2022REPID} that splits the input space into regions of reduced interaction, then greedily keep the trees that matter most for reproducing the reference model's predictions;
+(3) fit one curve per region with a region-aware backfitting~\cite{buja1989linear}.
 Two parameters bound what a reader must inspect: the tree depth $d_{\max}$ caps how many curves each feature has and $K$ caps how many interactions the model captures in total.
 
 \textbf{Contributions.}

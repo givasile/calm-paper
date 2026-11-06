@@ -21,7 +21,7 @@ Results are reported as the mean $\pm$ standard deviation over 5-fold cross-vali
 
 \subsection{Synthetic example}\label{sec:explanatory_example}
 
-On three synthetic regression datasets, we compare \method{} against EBM, as the GAM, and EB$^2$M, as the \gamm{}.
+On three synthetic regression datasets, we compare \method{} against EBM, as the GAM, and EB$^2$M (EBM with pairwise interactions), as the \gamm{}.
 In all three, the dataset consists of 1{,}000 draws of three independent features $x_i \sim \mathcal{U}(-1, 1)$; only the target $y=f_k(\xb)$ varies and each $f_k$ contains a different interaction structure:
 in Case~1, a conditional interaction of two features (one curve of $x_3$ per sign of $x_2$), which both \method{} and a \gamm{} can express;
 in Case~2, a conditional interaction of three features (one curve of $x_3$ per signs of $x_1$ and $x_2$), which only \method{} can express;
